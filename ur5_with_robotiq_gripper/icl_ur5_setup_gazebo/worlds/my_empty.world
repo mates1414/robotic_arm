@@ -1,0 +1,31 @@
+<?xml version="1.0" ?>
+<sdf version="1.6">
+  <world name="my_empty_world">
+    <!-- AprilTag cube model -->
+    <model name="apriltag_cube">
+      <static>true</static>
+      <link name="link">
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>0.05 0.05 0.05</size> <!-- 5cm cube -->
+            </box>
+          </geometry>
+          <material>
+            <script>
+              <uri>file://$(find icl_ur5_setup_gazebo)/img</uri>
+              <name>april_tag_material</name>
+            </script>
+          </material>
+        </visual>
+        <collision name="collision">
+          <geometry>
+            <box>
+              <size>0.05 0.05 0.05</size>
+            </box>
+          </geometry>
+        </collision>
+      </link>
+    </model>
+  </world>
+</sdf>
