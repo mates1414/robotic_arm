@@ -1,0 +1,7 @@
+<launch>
+  <node pkg="apriltag_ros" type="apriltag_ros_continuous_node" name="apriltag_ros_continuous_node">
+    <remap from="image_rect" to="/ur5/realsense/camera/image_raw" />
+    <rosparam command="load" file="$(find icl_ur5_setup_bringup)/config/tags.yaml" />
+    <rosparam command="load" file="$(find icl_ur5_setup_bringup)/config/settings.yaml" />
+  </node>
+</launch>

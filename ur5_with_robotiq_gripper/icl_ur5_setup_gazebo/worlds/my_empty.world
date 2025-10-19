@@ -4,19 +4,30 @@
     <!-- AprilTag cube model -->
     <model name="apriltag_cube">
       <static>true</static>
+      <pose>0 1.2 1 0 0 0</pose>  <!-- x y z roll pitch yaw -->
       <link name="link">
         <visual name="visual">
           <geometry>
             <box>
-              <size>0.05 0.05 0.05</size> <!-- 5cm cube -->
+              <size>5 0.05 5</size> <!-- 5cm cube -->
             </box>
           </geometry>
-          <material>
+          <!-- <material>
             <script>
-              <uri>file://$(find icl_ur5_setup_gazebo)/img</uri>
-              <name>april_tag_material</name>
+              <uri>file://$(find icl_ur5_setup_gazebo)/materials/textures</uri>
+              <name>tag36_11_00000</name>
             </script>
-          </material>
+          </material> -->
+        <material>
+          <ambient>1 1 1 1</ambient>
+          <diffuse>1 1 1 1</diffuse>
+          <specular>0 0 0 1</specular>
+          <emissive>0 0 0 1</emissive>
+          <script>
+            <uri>file://$(find icl_ur5_setup_gazebo)/materials/textures</uri>
+            <name>tag36_11_00000</name>
+          </script>
+        </material>
         </visual>
         <collision name="collision">
           <geometry>

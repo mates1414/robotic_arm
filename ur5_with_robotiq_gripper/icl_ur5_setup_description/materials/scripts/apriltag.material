@@ -8,7 +8,7 @@ material AprilTag/Cube
       filtering none
       texture_unit
       {
-        texture tag36_11_00000.png
+        texture tag36h11-0.png
         scale 1.0 1.0
       }
     }

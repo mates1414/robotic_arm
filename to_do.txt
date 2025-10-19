@@ -3,37 +3,37 @@ Phase 1: Robot & Environment Setup (URDF/Gazebo) 🤖
 [x] Add a new <link> for the camera model to the URDF.
 [x] Add a <joint> to attach the new camera link to the robot's wrist_3_link.
 [x] Add the Gazebo <plugin> for the camera sensor to the URDF.
-[ ] Place a cube with an AprilTag texture into your Gazebo world file.
+[x] Place a cube with an AprilTag texture into your Gazebo world file.
 [x] Verify: Relaunch the simulation and use rostopic echo /ur5/camera/image_raw or rqt_image_view to confirm the camera is working.
 
 Phase 2: AprilTag Perception Setup 🎯
 [x] Install the ros-noetic-apriltag-ros package.
-[ ] Create a config folder in your ROS package.
-[ ] Create a tags.yaml file inside config and define your AprilTag's ID and its exact size in meters.
-[ ] Create an apriltag.launch file in your launch folder.
-[ ] Configure the launch file to start the apriltag_ros_continuous_node and remap its image_rect topic to your camera's topic.
-[ ] Verify: Run your simulation and the apriltag.launch file. In RViz, add the TF display and confirm you see a new frame (e.g., tag_0) appear when the camera sees the tag.
+[x] Create a config folder in your ROS package.
+[x] Create a tags.yaml file inside config and define your AprilTag's ID and its exact size in meters.
+[x] Create an apriltag.launch file in your launch folder.
+[x] Configure the launch file to start the apriltag_ros_continuous_node and remap its image_rect topic to your camera's topic.
+[x] Verify: Run your simulation and the apriltag.launch file. In RViz, add the TF display and confirm you see a new frame (e.g., tag_0) appear when the camera sees the tag.
 
 Phase 3: Motion & Logic Scripting (Python) 🐍
-[ ] Create a new Python script (e.g., pick_and_place_task.py).
-[ ] Initialize rospy, moveit_commander, and a tf2_ros transform listener.
-[ ] Implement the core logic sequence:
-    [ ] Move arm to a 'scan' home position.
-    [ ] Look up the TF transform from base_link to the detected tag.
-    [ ] Calculate the target poses (approach, grasp, retreat, place). Remember to add a Z-axis offset for a safe approach from above.
-    [ ] Use MoveIt! to plan and execute the path to the approach pose.
-    [ ] Plan and execute the final descent to the grasp pose.
-    [ ] Plan and execute the retreat motion after picking.
-    [ ] Plan and execute the move to the final place location.
-[ ] Implement Gripper Control:
-    [ ] Write a function to publish a "close" command to the Robotiq gripper topic/action.
-    [ ] Write a function to publish an "open" command.
-    [ ] Integrate these gripper commands into the main logic sequence.
+[x] Create a new Python script (e.g., pick_and_place_task.py).
+[x] Initialize rospy, moveit_commander, and a tf2_ros transform listener.
+[x] Implement the core logic sequence:
+    [x] Move arm to a 'scan' home position.
+    [x] Look up the TF transform from base_link to the detected tag.
+    [x] Calculate the target poses (approach, grasp, retreat, place). Remember to add a Z-axis offset for a safe approach from above.
+    [x] Use MoveIt! to plan and execute the path to the approach pose.
+    [x] Plan and execute the final descent to the grasp pose.
+    [x] Plan and execute the retreat motion after picking.
+    [x] Plan and execute the move to the final place location.
+[x] Implement Gripper Control:
+    [x] Write a function to publish a "close" command to the Robotiq gripper topic/action.
+    [x] Write a function to publish an "open" command.
+    [x] Integrate these gripper commands into the main logic sequence.
 
 Phase 4: Integration and Testing 🚀
-[ ] Launch all components:
+[x] Launch all components:
     - Your Gazebo simulation with the robot.
     - Your MoveIt! move_group launch file.
     - Your apriltag.launch file.
-[ ] Run your Python script.
-[ ] Debug and Tune: Adjust approach heights, grasp depths, and timing until the pick-and-place task is reliable.
+[x] Run your Python script.
+[x] Debug and Tune: Adjust approach heights, grasp depths, and timing until the pick-and-place task is reliable.

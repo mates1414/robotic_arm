@@ -9,7 +9,8 @@
 
   <!-- We resume the logic in empty_world.launch, changing only the name of the world to be launched -->
   <include file="$(find gazebo_ros)/launch/empty_world.launch">
-    <arg name="world_name" value="$(find icl_ur5_setup_gazebo)/worlds/my_empty.world"/>
+    <arg name="world_name" value="$(find icl_ur5_setup_gazebo)/worlds/icl_ur5_setup.world"/>
+    <arg name="verbose" value="true"/>
     <!--arg name="paused" value="false"/-->    
     <!-- more default parameters can be changed here -->
     <arg name="debug" value="$(arg debug)" />

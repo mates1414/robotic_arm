@@ -1,0 +1,12 @@
+
+# AprilTag 2 code parameters
+# Find more information about these parameters in apriltag/include/apriltag.h
+tag_family:        'tag36h11' # Tag family name
+tag_threads:       2          # Use this many CPU threads for detection
+tag_decimate:      1.0        # Decimate input image by this factor
+tag_blur:          0.0        # Apply Gaussian blur to input image
+tag_refine_edges:  1          # Spend more time trying to align edges of tags
+tag_debug:         0          # Enable debug output, i.e., save bad tags as PNGs
+publish_tf:        true       # Publish the transform from the camera to the tag
+
+
