@@ -1,0 +1,16 @@
+material AprilTag/Cube
+{
+  technique
+  {
+    pass
+    {
+      // Disable filtering to keep the tag sharp and pixelated
+      filtering none
+      texture_unit
+      {
+        texture tag36_11_00000.png
+        scale 1.0 1.0
+      }
+    }
+  }
+}
