@@ -14,6 +14,7 @@ roslaunch icl_ur5_setup_gazebo ur5_gripper_simulation.launch
 # apriltag
 roslaunch icl_ur5_setup_bringup apriltag.launch
 rosrun icl_ur5_setup_bringup pick_and_place_task.py
+rosrun icl_ur5_setup_bringup default_pick_and_place.py
 
 # ur5 + robotiq 85 hardware
 roslaunch icl_ur5_setup_bringup ur5_gripper_noetic.launch 

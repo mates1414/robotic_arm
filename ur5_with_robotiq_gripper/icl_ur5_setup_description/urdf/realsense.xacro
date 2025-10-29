@@ -1,6 +1,38 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://ros.org/wiki/xacro">
-  <gazebo>
+  
+  <!-- Physical link representing the camera body -->
+  <link name="realsense_link">
+    <visual>
+      <geometry>
+        <box size="0.025 0.09 0.025"/>
+      </geometry>
+      <material name="camera_grey">
+        <color rgba="0.5 0.5 0.5 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="0.025 0.09 0.025"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.072"/>
+      <inertia ixx="0.000001" ixy="0.0" ixz="0.0" iyy="0.000001" iyz="0.0" izz="0.000001"/>
+    </inertial>
+  </link>
+
+  <!-- Optical frame (standard ROS camera convention: x-right, y-down, z-forward) -->
+  <link name="realsense_color_optical_frame"/>
+  
+  <joint name="realsense_optical_joint" type="fixed">
+    <parent link="realsense_link"/>
+    <child link="realsense_color_optical_frame"/>
+    <!-- Rotate from camera body frame to optical frame: x forward -> z forward, y left -> x right -->
+    <origin xyz="0 0 0" rpy="${-pi/2} 0 ${-pi/2}"/>
+  </joint>
+
+  <gazebo reference="realsense_link">
     <sensor type="depth" name="realsense_camera">
       <always_on>true</always_on>
       <update_rate>30</update_rate>
@@ -24,7 +56,7 @@
         <imageTopicName>camera/image_raw</imageTopicName>
         <depthImageTopicName>camera/depth/image_raw</depthImageTopicName>
         <cameraInfoTopicName>camera/camera_info</cameraInfoTopicName>
-        <frameName>realsense_link</frameName>
+        <frameName>realsense_color_optical_frame</frameName>
       </plugin>
     </sensor>
   </gazebo>
