@@ -88,8 +88,17 @@ roslaunch icl_ur5_setup_bringup apriltag.launch
 #### 3️⃣ Pick-and-Place Algoritmasını Çalıştır
 
 ```bash
+# Yöntem 1: Launch dosyası ile (ÖNERİLEN - parametreler ayarlı)
+roslaunch icl_ur5_setup_bringup pick_and_place.launch
+
+# Yöntem 2: Parametrelerle override
+roslaunch icl_ur5_setup_bringup pick_and_place.launch gripper_tcp_offset:=0.17
+
+# Yöntem 3: Doğrudan node (varsayılan parametrelerle)
 rosrun icl_ur5_setup_bringup pick_and_place_task.py
 ```
+
+> 💡 **İpucu:** Eğer gripper nesneye çarpıyorsa veya yeterince yaklaşmıyorsa, `gripper_tcp_offset` parametresini ayarlayın. Detaylar için `GRIPPER_TCP_OFFSET.md` dosyasına bakın.
 
 ---
 
@@ -291,10 +300,28 @@ roslaunch icl_ur5_setup_bringup apriltag.launch \
 rosrun icl_ur5_setup_bringup pick_and_place_task.py
 
 # Özel parametrelerle (rosparam ile)
-rosparam set /pick_and_place_task/grasp_z_offset -0.02
+rosparam set /pick_and_place_task/gripper_tcp_offset 0.17
+rosparam set /pick_and_place_task/grasp_z_offset 0.0
 rosparam set /pick_and_place_task/approach_height 0.15
 rosrun icl_ur5_setup_bringup pick_and_place_task.py
 ```
+
+#### 🎯 Pick-and-Place Parametreleri
+
+| Parametre | Default | Açıklama |
+|-----------|---------|----------|
+| `~arm_group` | `manipulator` | MoveIt arm planning group |
+| `~gripper_group` | `gripper` | MoveIt gripper group |
+| `~base_frame` | `base_link` | Robot base frame |
+| `~tag_frame` | `tag_0` | AprilTag frame adı |
+| `~camera_frame` | `realsense_color_optical_frame` | Kamera optical frame |
+| `~cube_size` | `0.05` | Hedef küp boyutu (metre) |
+| **`~gripper_tcp_offset`** | **`0.17`** | **Tool0'dan gripper uçlarına mesafe (m)** ⚠️ |
+| `~grasp_z_offset` | `0.0` | Ek Z offset (ince ayar için) |
+| `~approach_height` | `0.15` | Yaklaşma yüksekliği (metre) |
+| `~place_x/y/z` | `0.5/-0.2/0.5` | Bırakma pozisyonu |
+
+> ⚠️ **Önemli:** `gripper_tcp_offset` parametresi gripper'ın fiziksel boyutunu temsil eder. Bu değer, gripper'ın nesnenin içine girme sorununu çözer. Robotiq 85 için yaklaşık **0.16-0.18 m** aralığında olmalıdır.
 
 ---
 

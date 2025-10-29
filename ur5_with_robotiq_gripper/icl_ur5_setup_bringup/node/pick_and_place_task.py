@@ -61,8 +61,12 @@ class PickAndPlace:
 
         # Object and grasp parameters
         self.cube_size = rospy.get_param('~cube_size', 0.05)  # 5 cm cube
-        self.grasp_z_offset = rospy.get_param('~grasp_z_offset', 0.1)  # relative to tag z (tune per setup)
-        self.approach_height = rospy.get_param('~approach_height', 0.18)  # how high above grasp to approach
+        # Gripper TCP offset: distance from tool0 (end-effector frame) to gripper finger tips
+        # For Robotiq 85: base_link to finger tips is approximately 16-18 cm when closed
+        # This prevents the gripper from trying to position tool0 inside the object
+        self.gripper_tcp_offset = rospy.get_param('~gripper_tcp_offset', 0.20)  # meters, tune based on your gripper
+        self.grasp_z_offset = rospy.get_param('~grasp_z_offset', 0.0)  # additional offset relative to object top (tune per setup)
+        self.approach_height = rospy.get_param('~approach_height', 0.15)  # how high above grasp to approach
         self.gripper_close_wait = rospy.get_param('~gripper_close_wait', 1.0)
         self.gripper_open_wait = rospy.get_param('~gripper_open_wait', 1.0)
 
@@ -101,8 +105,21 @@ class PickAndPlace:
         pick_pose = geometry_msgs.msg.Pose()
         pick_pose.position.x = tag_pose_in_base.position.x
         pick_pose.position.y = tag_pose_in_base.position.y
-        # Compute grasp Z using cube size and user offset. We assume the tag origin is at/near the top of the cube.
-        pick_pose.position.z = tag_pose_in_base.position.z + self.grasp_z_offset
+        
+        # Compute grasp Z:
+        # 1. Tag is at the top of the cube
+        # 2. We want to grasp at the center/slightly below center of the cube
+        # 3. But tool0 needs to be higher because gripper fingers extend down by gripper_tcp_offset
+        # Formula: tool0_z = tag_z - (cube_size/2) + gripper_tcp_offset + grasp_z_offset
+        pick_pose.position.z = (tag_pose_in_base.position.z 
+                                - (self.cube_size / 2.0)  # go to cube center
+                                + self.gripper_tcp_offset  # offset tool0 up so fingers reach object
+                                + self.grasp_z_offset)     # user fine-tuning
+        
+        rospy.loginfo(f"Pick pose calculation: tag_z={tag_pose_in_base.position.z:.3f}, "
+                     f"cube_size={self.cube_size:.3f}, tcp_offset={self.gripper_tcp_offset:.3f}, "
+                     f"grasp_offset={self.grasp_z_offset:.3f} -> tool0_z={pick_pose.position.z:.3f}")
+        
         pick_pose.orientation = self.downward_orientation_from_tag(tag_pose_in_base.orientation)
 
         approach_pose = self.offset_pose(pick_pose, self.approach_height)
@@ -149,8 +166,16 @@ class PickAndPlace:
         """
         start = rospy.Time.now()
         rate = rospy.Rate(5)
+        logged_frames = False
+        
         while (rospy.Time.now() - start).to_sec() < timeout and not rospy.is_shutdown():
             try:
+                # Debug: Log available frames once
+                if not logged_frames:
+                    all_frames = self.tf_buffer.all_frames_as_string()
+                    rospy.loginfo(f"Available TF frames:\n{all_frames}")
+                    logged_frames = True
+                
                 # 1) Direct base <- tag (preferred)
                 if self.tf_buffer.can_transform(self.base_frame, self.tag_frame, rospy.Time(0)):
                     trans = self.tf_buffer.lookup_transform(self.base_frame, self.tag_frame, rospy.Time(0), rospy.Duration(1.0))
@@ -160,36 +185,47 @@ class PickAndPlace:
                     ps.pose.position.y = trans.transform.translation.y
                     ps.pose.position.z = trans.transform.translation.z
                     ps.pose.orientation = trans.transform.rotation
-                    rospy.loginfo_once(f"Found tag '{self.tag_frame}' directly in {self.base_frame}")
+                    rospy.loginfo(f"✓ Found tag '{self.tag_frame}' directly in {self.base_frame}: "
+                                f"x={ps.pose.position.x:.3f}, y={ps.pose.position.y:.3f}, z={ps.pose.position.z:.3f}")
                     return ps.pose
 
                 # 2) Try tag in camera frame then transform pose to base_frame
                 if self.tf_buffer.can_transform(self.camera_frame, self.tag_frame, rospy.Time(0)):
                     trans_cam = self.tf_buffer.lookup_transform(self.camera_frame, self.tag_frame, rospy.Time(0), rospy.Duration(1.0))
                     tag_in_cam = geometry_msgs.msg.PoseStamped()
-                    tag_in_cam.header.stamp = trans_cam.header.stamp
+                    tag_in_cam.header.stamp = rospy.Time.now()  # Use current time for transform
                     tag_in_cam.header.frame_id = self.camera_frame
                     tag_in_cam.pose.position.x = trans_cam.transform.translation.x
                     tag_in_cam.pose.position.y = trans_cam.transform.translation.y
                     tag_in_cam.pose.position.z = trans_cam.transform.translation.z
                     tag_in_cam.pose.orientation = trans_cam.transform.rotation
+                    
+                    rospy.loginfo(f"Tag in {self.camera_frame}: x={tag_in_cam.pose.position.x:.3f}, "
+                                f"y={tag_in_cam.pose.position.y:.3f}, z={tag_in_cam.pose.position.z:.3f}")
 
                     # ensure we can transform camera->base (most setups will)
                     if self.tf_buffer.can_transform(self.base_frame, self.camera_frame, rospy.Time(0)):
                         try:
                             tag_in_base = self.tf_buffer.transform(tag_in_cam, self.base_frame, rospy.Duration(1.0))
-                            rospy.loginfo_once(f"Transformed tag from {self.camera_frame} to {self.base_frame}")
+                            rospy.loginfo(f"✓ Transformed tag from {self.camera_frame} to {self.base_frame}: "
+                                        f"x={tag_in_base.pose.position.x:.3f}, y={tag_in_base.pose.position.y:.3f}, "
+                                        f"z={tag_in_base.pose.position.z:.3f}")
                             return tag_in_base.pose
                         except Exception as e:
-                            rospy.logwarn_once(f"Failed to transform tag pose from {self.camera_frame} to {self.base_frame}: {e}")
+                            rospy.logwarn(f"Failed to transform tag pose from {self.camera_frame} to {self.base_frame}: {e}")
                     else:
-                        rospy.logwarn_once(f"Cannot transform from {self.camera_frame} to {self.base_frame} yet; check static transform / URDF")
+                        rospy.logwarn_once(f"Cannot transform from {self.camera_frame} to {self.base_frame} yet; check URDF/TF tree")
 
                 # If reached here, no usable transform yet
                 rospy.logdebug("Tag not transformable to base yet; waiting...")
             except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
                 rospy.logdebug(f"TF exception while waiting for tag: {e}")
             rate.sleep()
+        
+        rospy.logerr(f"Timeout waiting for tag '{self.tag_frame}'. Check:\n"
+                    f"  1. AprilTag detection is running: roslaunch icl_ur5_setup_bringup apriltag.launch\n"
+                    f"  2. Tag is visible in camera view: rostopic echo /tag_detections\n"
+                    f"  3. TF tree is complete: rosrun rqt_tf_tree rqt_tf_tree")
         return None
 
     def downward_orientation_from_tag(self, tag_orientation):

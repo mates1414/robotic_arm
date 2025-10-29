@@ -1,0 +1,56 @@
+<launch>
+  <!-- Pick and Place Task Node with Configurable Parameters -->
+  
+  <node name="pick_and_place_task" pkg="icl_ur5_setup_bringup" type="pick_and_place_task.py" output="screen">
+    
+    <!-- MoveIt Groups -->
+    <param name="arm_group" value="manipulator"/>
+    <param name="gripper_group" value="gripper"/>
+    
+    <!-- TF Frames -->
+    <param name="base_frame" value="base_link"/>
+    <param name="tag_frame" value="tag_0"/>
+    <param name="camera_frame" value="realsense_color_optical_frame"/>
+    
+    <!-- Object Parameters -->
+    <param name="cube_size" value="0.05"/>  <!-- 5 cm cube -->
+    
+    <!-- Gripper TCP Offset -->
+    <!-- Distance from tool0 to gripper finger tips -->
+    <!-- For Robotiq 85: approximately 16-18 cm -->
+    <!-- CRITICAL: Prevents gripper from going inside the object -->
+    <param name="gripper_tcp_offset" value="0.20"/>
+    
+    <!-- Grasp Parameters -->
+    <param name="grasp_z_offset" value="0.0"/>  <!-- Fine-tuning offset (positive = higher) -->
+    <param name="approach_height" value="0.15"/>  <!-- Height above grasp for approach -->
+    
+    <!-- Gripper Timing -->
+    <param name="gripper_close_wait" value="1.5"/>  <!-- Seconds to wait after closing -->
+    <param name="gripper_open_wait" value="1.5"/>   <!-- Seconds to wait after opening -->
+    
+    <!-- Place Pose (in base_link frame) -->
+    <param name="place_x" value="0.5"/>
+    <param name="place_y" value="-0.2"/>
+    <param name="place_z" value="0.5"/>
+    
+    <!-- Place Orientation (quaternion) - gripper pointing downward -->
+    <param name="place_ori_x" value="0.0"/>
+    <param name="place_ori_y" value="1.0"/>
+    <param name="place_ori_z" value="0.0"/>
+    <param name="place_ori_w" value="0.0"/>
+    
+    <!-- Home Joint Positions (radians) -->
+    <!-- [shoulder_pan, shoulder_lift, elbow, wrist_1, wrist_2, wrist_3] -->
+    <rosparam param="home_joint_positions">[0.0, -1.57, 1.57, -1.57, -1.57, 0.0]</rosparam>
+    
+    <!-- Gripper Control (for MoveIt joint control) -->
+    <param name="gripper_joint" value="finger_joint"/>
+    <param name="gripper_open_position" value="0.0"/>
+    <param name="gripper_closed_position" value="0.78"/>
+    
+    <!-- Robotiq Topic (fallback if MoveIt gripper group not available) -->
+    <param name="gripper_topic" value="Robotiq2FGripperRobotOutput"/>
+  </node>
+
+</launch>

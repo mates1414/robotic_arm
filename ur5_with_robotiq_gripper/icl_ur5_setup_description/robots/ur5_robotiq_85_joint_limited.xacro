@@ -35,6 +35,16 @@
       <parent link= "${prefix}tool0" />
       <child link = "${prefix}robotiq_arg2f_base_link" />
       <origin xyz=" 0.0 0.0 0.0" rpy="0.0 0.0 ${pi/2}" />
+    </joint>
+    
+    <!-- TCP (Tool Center Point) - gripper finger tips grasp point -->
+    <!-- This represents where objects should be positioned for grasping -->
+    <link name="${prefix}gripper_tcp"/>
+    <joint name="gripper_tcp_joint" type="fixed">
+      <parent link="${prefix}tool0"/>
+      <child link="${prefix}gripper_tcp"/>
+      <!-- Robotiq 85: ~17cm from tool0 to finger tips when fingers are centered -->
+      <origin xyz="0 0 0.17" rpy="0 0 0"/>
     </joint> 
 
     <!-- Camera link -->
@@ -64,6 +74,19 @@
       <parent link="${prefix}wrist_3_link"/>
       <child link="realsense_link"/>
       <origin xyz="0 0.06 0.01" rpy="0.0 -1.5708 1.5708"/>
+    </joint>
+
+    <!-- Optical frame for camera (ROS optical convention: X=right, Y=down, Z=forward) -->
+    <link name="realsense_color_optical_frame"/>
+    
+    <joint name="realsense_optical_joint" type="fixed">
+      <parent link="realsense_link"/>
+      <child link="realsense_color_optical_frame"/>
+      <!-- Rotate from camera body frame to optical frame:
+           Camera body: X=forward, Y=left, Z=up
+           Optical: X=right, Y=down, Z=forward
+           Rotation: -pi/2 around X, then -pi/2 around Z -->
+      <origin xyz="0 0 0" rpy="-1.5708 0 -1.5708"/>
     </joint>
 
     <!-- <link name="${prefix}tool" />
@@ -99,7 +122,8 @@
         <cameraName>realsense</cameraName>
         <imageTopicName>camera/image_raw</imageTopicName>
         <cameraInfoTopicName>camera/camera_info</cameraInfoTopicName>
-        <frameName>realsense_link</frameName>
+        <frameName>realsense_color_optical_frame</frameName>
+        <hackBaseline>0.07</hackBaseline>
       </plugin>
     </sensor>
   </gazebo>

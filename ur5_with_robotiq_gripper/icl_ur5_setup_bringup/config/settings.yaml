@@ -9,4 +9,7 @@ tag_refine_edges:  1          # Spend more time trying to align edges of tags
 tag_debug:         0          # Enable debug output, i.e., save bad tags as PNGs
 publish_tf:        true       # Publish the transform from the camera to the tag
 
+# Camera frame ID - must match the optical frame in URDF
+camera_frame_id:   'realsense_color_optical_frame'
+
 
