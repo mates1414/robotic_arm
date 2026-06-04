@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import rospy
 import moveit_commander
@@ -6,6 +6,10 @@ import geometry_msgs.msg
 import tf2_ros
 import tf2_geometry_msgs
 import sys
+import copy
+import actionlib
+from sensor_msgs.msg import JointState
+from control_msgs.msg import GripperCommandAction, GripperCommandGoal
 from robotiq_2f_gripper_control.msg import Robotiq2FGripper_robot_output
 
 class PickAndPlace:
@@ -48,6 +52,22 @@ class PickAndPlace:
         self.gripper_joint_name = rospy.get_param('~gripper_joint', 'finger_joint')
         self.gripper_open_position = rospy.get_param('~gripper_open_position', 0.0)
         self.gripper_closed_position = rospy.get_param('~gripper_closed_position', 0.78)
+        # max_effort sent in the GripperCommand goal. The gripper is POSITION-
+        # controlled (effort control was tried and reverted — see README), so this
+        # bounds the holding torque rather than the squeeze force. Tune per gripper.
+        self.gripper_max_effort = rospy.get_param('~gripper_max_effort', 20.0)
+
+        # Direct GripperCommand action client (primary gripper control). Sending
+        # the goal ourselves lets us set max_effort, which MoveIt's gripper group
+        # leaves at 0 (= unbounded).
+        self.gripper_action_ns = rospy.get_param('~gripper_action_ns', '/gripper/gripper_cmd')
+        self.gripper_action = actionlib.SimpleActionClient(self.gripper_action_ns, GripperCommandAction)
+        if self.gripper_action.wait_for_server(rospy.Duration(5.0)):
+            rospy.loginfo(f"Connected to GripperCommand action server '{self.gripper_action_ns}'")
+        else:
+            rospy.logwarn(f"GripperCommand action server '{self.gripper_action_ns}' not available; "
+                          f"will fall back to MoveIt group / Robotiq topic")
+            self.gripper_action = None
 
         # TF2 for transforms
         self.tf_buffer = tf2_ros.Buffer()
@@ -69,6 +89,9 @@ class PickAndPlace:
         self.approach_height = rospy.get_param('~approach_height', 0.15)  # how high above grasp to approach
         self.gripper_close_wait = rospy.get_param('~gripper_close_wait', 1.0)
         self.gripper_open_wait = rospy.get_param('~gripper_open_wait', 1.0)
+        # Seconds to let the robot/controllers settle after spawn before the
+        # first trajectory (prevents a one-off CONTROL_FAILED at startup).
+        self.startup_settle_time = rospy.get_param('~startup_settle_time', 5.0)
 
         # Place pose (in base frame) - some sensible default, override with params
         self.place_pose = geometry_msgs.msg.Pose()
@@ -90,6 +113,21 @@ class PickAndPlace:
         self.run()
 
     def run(self):
+        # Let the simulation/controllers settle after spawn before the first
+        # trajectory. The robot drops into place at startup, and sending a goal
+        # while it is still moving causes a one-off CONTROL_FAILED.
+        rospy.loginfo('Waiting for controllers/robot to settle before first move...')
+        try:
+            rospy.wait_for_message('/joint_states', JointState, timeout=30.0)
+        except Exception:
+            rospy.logwarn('No /joint_states received yet; continuing anyway')
+        rospy.sleep(self.startup_settle_time)
+
+        # Give the gripper a definite open/hold goal so it settles to a known
+        # position before we command the first arm trajectory.
+        self.command_gripper(close=False)
+        rospy.sleep(1.0)
+
         # Move robot to home
         self.move_to_home()
 
@@ -125,18 +163,27 @@ class PickAndPlace:
         approach_pose = self.offset_pose(pick_pose, self.approach_height)
         retreat_pose = self.offset_pose(pick_pose, self.approach_height)
 
-        # Move to approach
+        # Tell MoveIt about the support shelf and the cube so it plans the
+        # approach from straight above, instead of sweeping the arm sideways
+        # through the cube and knocking it off the shelf.
+        self.add_collision_scene(tag_pose_in_base)
+
+        # Move to approach (collision-aware: comes in from above the cube)
         self.move_to_pose(approach_pose, 'approach')
 
-        # Move down to grasp
-        self.move_to_pose(pick_pose, 'grasp')
+        # Remove the cube collision object so the gripper may contact it, then
+        # descend straight down (Cartesian) so we don't sweep into it.
+        self.scene.remove_world_object('target_object')
+        rospy.sleep(0.5)
+        self.cartesian_move(pick_pose, 'grasp descend')
 
-        # Close gripper (Robotiq)
+        # Close gripper (Robotiq) - the gazebo_grasp_fix plugin attaches the cube
         self.command_gripper(close=True)
         rospy.sleep(self.gripper_close_wait)
 
-        # Retreat
-        self.move_to_pose(retreat_pose, 'retreat')
+        # Retreat straight up (Cartesian), then drop the shelf from the scene
+        self.cartesian_move(retreat_pose, 'retreat')
+        self.scene.remove_world_object('support_shelf')
 
         # Move to place approach
         place_approach = self.offset_pose(self.place_pose, self.approach_height)
@@ -250,22 +297,32 @@ class PickAndPlace:
         out.x, out.y, out.z, out.w = qd[0], qd[1], qd[2], qd[3]
         return out
 
-    def move_to_home(self):
+    def move_to_home(self, retries=2):
         rospy.loginfo('Moving to home joint configuration')
-        self.arm.set_joint_value_target(self.home_joint_positions)
-        ok = self.arm.go(wait=True)
-        self.arm.stop()
-        if not ok:
-            rospy.logwarn('Failed to reach home position')
+        for attempt in range(retries + 1):
+            self.arm.set_joint_value_target(self.home_joint_positions)
+            ok = self.arm.go(wait=True)
+            self.arm.stop()
+            self.arm.clear_pose_targets()
+            if ok:
+                return True
+            rospy.logwarn(f'Home move failed (attempt {attempt + 1}/{retries + 1}); retrying...')
+            rospy.sleep(1.0)
+        rospy.logwarn('Failed to reach home position after retries')
+        return False
 
-    def move_to_pose(self, pose, label='pose'):
+    def move_to_pose(self, pose, label='pose', retries=1):
         rospy.loginfo(f"Moving to {label}: x={pose.position.x:.3f} y={pose.position.y:.3f} z={pose.position.z:.3f}")
-        self.arm.set_pose_target(pose)
-        ok = self.arm.go(wait=True)
-        self.arm.stop()
-        self.arm.clear_pose_targets()
-        if not ok:
-            rospy.logwarn(f"Move to {label} failed")
+        for attempt in range(retries + 1):
+            self.arm.set_pose_target(pose)
+            ok = self.arm.go(wait=True)
+            self.arm.stop()
+            self.arm.clear_pose_targets()
+            if ok:
+                return True
+            rospy.logwarn(f"Move to {label} failed (attempt {attempt + 1}/{retries + 1})")
+            rospy.sleep(0.5)
+        return False
 
     def offset_pose(self, pose, dz):
         p = geometry_msgs.msg.Pose()
@@ -275,15 +332,82 @@ class PickAndPlace:
         p.orientation = pose.orientation
         return p
 
+    def add_collision_box(self, name, x, y, z, sx, sy, sz, timeout=2.0):
+        """Add a box to the MoveIt planning scene and wait for it to register."""
+        ps = geometry_msgs.msg.PoseStamped()
+        ps.header.frame_id = self.base_frame
+        ps.pose.position.x = x
+        ps.pose.position.y = y
+        ps.pose.position.z = z
+        ps.pose.orientation.w = 1.0
+        self.scene.add_box(name, ps, size=(sx, sy, sz))
+        start = rospy.Time.now()
+        while (rospy.Time.now() - start).to_sec() < timeout and not rospy.is_shutdown():
+            if name in self.scene.get_known_object_names():
+                return True
+            rospy.sleep(0.1)
+        rospy.logwarn(f"Collision object '{name}' did not register within {timeout}s")
+        return False
+
+    def add_collision_scene(self, tag_pose):
+        """Add the support shelf and the target cube to the planning scene so
+        MoveIt avoids them in transit. The boxes are sized generously (and the
+        cube box is tall) to tolerate the mono-camera tag-depth error."""
+        cube_center_z = tag_pose.position.z - (self.cube_size / 2.0)
+        # Support shelf: a box just below the cube
+        self.add_collision_box('support_shelf',
+                               tag_pose.position.x, tag_pose.position.y,
+                               cube_center_z - self.cube_size / 2.0 - 0.03,
+                               0.22, 0.22, 0.05)
+        # Target cube: tall box covering the cube column (absorbs depth error)
+        self.add_collision_box('target_object',
+                               tag_pose.position.x, tag_pose.position.y,
+                               cube_center_z + 0.03,
+                               self.cube_size + 0.02, self.cube_size + 0.02, 0.16)
+
+    def cartesian_move(self, target_pose, label='cartesian'):
+        """Move the end-effector in a straight line to target_pose (used for the
+        vertical grasp descent/retreat so we don't sweep into the cube)."""
+        rospy.loginfo(f"Cartesian move to {label}: z={target_pose.position.z:.3f}")
+        waypoints = [copy.deepcopy(target_pose)]
+        # This MoveIt build's signature is (waypoints, eef_step, avoid_collisions).
+        (plan, fraction) = self.arm.compute_cartesian_path(waypoints, 0.005, True)
+        if fraction > 0.9:
+            self.arm.execute(plan, wait=True)
+            self.arm.stop()
+            return True
+        rospy.logwarn(f"Cartesian {label} only reached {fraction:.2f}; falling back to a planned move")
+        return self.move_to_pose(target_pose, label)
+
     def command_gripper(self, close=True):
-        """Control the gripper. Prefer MoveIt gripper group if available, otherwise publish Robotiq commands.
+        """Control the gripper. Prefer the GripperCommand action (drives finger_joint
+        to the target position and carries a max_effort hold cap), then the MoveIt
+        group, then the Robotiq topic.
 
         close: True -> close gripper, False -> open gripper
         """
-        # If a MoveIt gripper move group exists, use joint control
+        target_position = self.gripper_closed_position if close else self.gripper_open_position
+
+        # Primary: GripperCommand action -> position_controllers/GripperActionController
+        if self.gripper_action is not None:
+            try:
+                goal = GripperCommandGoal()
+                goal.command.position = target_position
+                # Carry a non-zero max_effort so the position controller has a
+                # holding-torque cap (and the action is well-formed). The gripper is
+                # position-controlled, so this bounds the hold, not the squeeze.
+                goal.command.max_effort = self.gripper_max_effort
+                rospy.loginfo(f"Gripper {'close' if close else 'open'} -> pos={target_position:.3f}, "
+                              f"max_effort={goal.command.max_effort:.1f}")
+                self.gripper_action.send_goal(goal)
+                self.gripper_action.wait_for_result(rospy.Duration(self.gripper_close_wait + 3.0))
+                return
+            except Exception as e:
+                rospy.logwarn(f"GripperCommand action failed: {e}; falling back to MoveIt/topic")
+
+        # Fallback: MoveIt gripper move group (position only)
         if hasattr(self, 'gripper_move_group') and self.gripper_move_group is not None:
             try:
-                target_position = self.gripper_closed_position if close else self.gripper_open_position
                 rospy.loginfo(f"Moving gripper (MoveIt) to {'closed' if close else 'open'} position: {target_position}")
                 self.gripper_move_group.set_joint_value_target({self.gripper_joint_name: target_position})
                 ok = self.gripper_move_group.go(wait=True)

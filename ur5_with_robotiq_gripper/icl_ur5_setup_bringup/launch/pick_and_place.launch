@@ -22,7 +22,7 @@
     <param name="gripper_tcp_offset" value="0.20"/>
     
     <!-- Grasp Parameters -->
-    <param name="grasp_z_offset" value="0.0"/>  <!-- Fine-tuning offset (positive = higher) -->
+    <param name="grasp_z_offset" value="0.02"/>  <!-- Grasp at the cube center; tune for your gripper (see README grasp-tuning notes) -->
     <param name="approach_height" value="0.15"/>  <!-- Height above grasp for approach -->
     
     <!-- Gripper Timing -->
@@ -44,11 +44,16 @@
     <!-- [shoulder_pan, shoulder_lift, elbow, wrist_1, wrist_2, wrist_3] -->
     <rosparam param="home_joint_positions">[0.0, -1.57, 1.57, -1.57, -1.57, 0.0]</rosparam>
     
-    <!-- Gripper Control (for MoveIt joint control) -->
+    <!-- Gripper Control -->
     <param name="gripper_joint" value="finger_joint"/>
     <param name="gripper_open_position" value="0.0"/>
     <param name="gripper_closed_position" value="0.78"/>
-    
+    <!-- max_effort passed in the GripperCommand goal (Nm). The position-controlled
+         gripper uses this as the holding torque cap; effort control was tried and
+         reverted (see README), so this mainly bounds the hold, not the squeeze. -->
+    <param name="gripper_max_effort" value="40.0"/>
+    <param name="gripper_action_ns" value="/gripper/gripper_cmd"/>
+
     <!-- Robotiq Topic (fallback if MoveIt gripper group not available) -->
     <param name="gripper_topic" value="Robotiq2FGripperRobotOutput"/>
   </node>

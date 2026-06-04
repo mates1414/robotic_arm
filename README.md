@@ -1,4 +1,4 @@
-# 🤖 UR5 + Robotiq 85 Gripper - Gazebo Simülasyonu
+# 🤖 UR5 + Robotiq 85 Gripper - Gazebo Simulation
 
 <div align="center">
 
@@ -7,155 +7,160 @@
 ![MoveIt](https://img.shields.io/badge/MoveIt-1.1-green?style=flat-square)
 ![Python](https://img.shields.io/badge/Python-3.8+-yellow?style=flat-square&logo=python)
 
-*UR5 robot kolu, Robotiq 85 gripper ve AprilTag tabanlı pick-and-place sistemi*
+*UR5 robot arm, Robotiq 85 gripper and an AprilTag-based pick-and-place system*
 
-[🚀 Hızlı Başlangıç](#-hızlı-başlangıç) • [📦 Kurulum](#-kurulum) • [📁 Dosya Yapısı](#-dosya-yapısı) • [⚙️ Konfigürasyon](#-konfigürasyon) • [🔧 Sorun Giderme](#-sorun-giderme)
+[🚀 Quick Start](#-quick-start) • [📦 Installation](#-installation) • [📁 File Structure](#-file-structure) • [⚙️ Configuration](#-configuration) • [🔧 Troubleshooting](#-troubleshooting)
 
 </div>
 
 ---
 
-## 📋 İçindekiler
+## 📋 Table of Contents
 
-- [Genel Bakış](#genel-bakış)
-- [Hızlı Başlangıç](#-hızlı-başlangıç)
-- [Kurulum](#-kurulum)
-- [Dosya Yapısı](#-dosya-yapısı)
-- [Launch Komutları](#-launch-komutları)
-- [Konfigürasyon](#-konfigürasyon)
-- [Sistem Mimarisi](#-sistem-mimarisi)
-- [TF Frame Ağacı](#-tf-frame-ağacı)
-- [Sorun Giderme](#-sorun-giderme)
+- [Overview](#-overview)
+- [Quick Start](#-quick-start)
+- [Installation](#-installation)
+- [File Structure](#-file-structure)
+- [Launch Commands](#-launch-commands)
+- [Configuration](#-configuration)
+- [System Architecture](#️-system-architecture)
+- [TF Frame Tree](#️-tf-frame-tree)
+- [Troubleshooting](#-troubleshooting)
+- [Current Status](#-current-status-of-the-repository)
 
 ---
 
-## 🎯 Genel Bakış
+## 🎯 Overview
 
-Bu proje **UR5 robot kolu** ve **Robotiq 85 gripper**'ı Gazebo simülatöründe kontrol etmek için tasarlanmıştır. Sistem:
+This project is designed to control a **UR5 robot arm** and a **Robotiq 85 gripper** in the Gazebo simulator. The system provides:
 
-- ✅ **MoveIt** ile motion planning
-- ✅ **RViz** ile gerçek zamanlı görselleştirme
-- ✅ **AprilTag** tabanlı nesne tespiti
-- ✅ **ROS Control** ile controller yönetimi
-- ✅ Simülasyon ve donanım desteği
+- ✅ **MoveIt** for motion planning
+- ✅ **RViz** for real-time visualization
+- ✅ **AprilTag**-based object detection
+- ✅ **ROS Control** for controller management
+- ✅ Simulation and hardware support
 
-### 🎬 Simülasyon Akışı
+### 🎬 Simulation Flow
 
 ```
 ┌─────────────────────────────────────────────────┐
-│  1. Gazebo Dünyası Yüklenir                     │
-│  2. Robot Modeli Spawn Edilir                   │
-│  3. Controller'lar Başlatılır                   │
-│  4. MoveIt Planning Scene Hazırlanır            │
-│  5. RViz Görselleştirmesi Açılır                │
+│  1. Gazebo world is loaded                       │
+│  2. Robot model is spawned                       │
+│  3. Controllers are started                      │
+│  4. MoveIt planning scene is prepared            │
+│  5. RViz visualization opens                     │
 └─────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 🚀 Hızlı Başlangıç
+## 🚀 Quick Start
 
-### Sistem Gereksinimleri
+### System Requirements
 
 ```bash
-# ROS Noetic kurulu olmalı
+# ROS Noetic must be installed
 # Gazebo 11.x
 # MoveIt 1.1+
 # Python 3.8+
 ```
 
-### Temel Komutlar
+> 🐳 On **Ubuntu 22.04** (or any non-Focal host) use the ROS Noetic container in
+> the `docker/` folder instead of installing directly. See [DOCKER.md](DOCKER.md).
 
-#### 1️⃣ Simülasyon Ortamını Başlat
+### Basic Commands
+
+#### 1️⃣ Start the Simulation Environment
 
 ```bash
 roslaunch icl_ur5_setup_gazebo ur5_gripper_simulation.launch
 ```
 
-**Bu komut:**
-- Gazebo simülatörünü açar
-- Robot modelini yükler ve spawn eder
-- MoveIt planning node'unu başlatır
-- RViz görselleştirmesini açar
-- Controller'ları başlatır
+**This command:**
+- Opens the Gazebo simulator
+- Loads and spawns the robot model
+- Starts the MoveIt planning node
+- Opens the RViz visualization
+- Starts the controllers
 
-#### 2️⃣ AprilTag Detection Başlat
+#### 2️⃣ Start AprilTag Detection
 
 ```bash
 roslaunch icl_ur5_setup_bringup apriltag.launch
 ```
 
-#### 3️⃣ Pick-and-Place Algoritmasını Çalıştır
+#### 3️⃣ Run the Pick-and-Place Algorithm
 
 ```bash
-# Yöntem 1: Launch dosyası ile (ÖNERİLEN - parametreler ayarlı)
+# Method 1: Via launch file (RECOMMENDED - parameters preset)
 roslaunch icl_ur5_setup_bringup pick_and_place.launch
 
-# Yöntem 2: Parametrelerle override
+# Method 2: Override parameters
 roslaunch icl_ur5_setup_bringup pick_and_place.launch gripper_tcp_offset:=0.17
 
-# Yöntem 3: Doğrudan node (varsayılan parametrelerle)
+# Method 3: Run the node directly (with default parameters)
 rosrun icl_ur5_setup_bringup pick_and_place_task.py
 ```
 
-> 💡 **İpucu:** Eğer gripper nesneye çarpıyorsa veya yeterince yaklaşmıyorsa, `gripper_tcp_offset` parametresini ayarlayın. Detaylar için `GRIPPER_TCP_OFFSET.md` dosyasına bakın.
+> 💡 **Tip:** If the gripper collides with the object or does not get close enough,
+> adjust the `gripper_tcp_offset` parameter.
 
 ---
 
-## 📦 Kurulum
+## 📦 Installation
 
 ```bash
-# Workspace'i oluştur
+# Create the workspace
 mkdir -p ~/ur5_ws/src
 cd ~/ur5_ws
 
-# Paketi klonla
+# Clone the package
 git clone https://github.com/mates1414/robotic_arm.git src/
 
-# Bağımlılıkları yükle
+# Install dependencies
 rosdep install --from-paths src --ignore-src -r -y
 
-# Build et
+# Build
 catkin_make
 source devel/setup.bash
 ```
 
 ---
 
-## 📁 Dosya Yapısı
+## 📁 File Structure
 
-### 📊 Ana Dizin Yapısı
+### 📊 Main Directory Layout
 
 ```
 ur5_with_robotiq_gripper/
 │
-├── 🎮 icl_ur5_setup_gazebo/               # Gazebo Simülasyon
+├── 🎮 icl_ur5_setup_gazebo/               # Gazebo Simulation
 │   ├── launch/
-│   │   ├── ur5_gripper_simulation.launch          ⭐ ANA LAUNCH (hepsini başlatır)
+│   │   ├── ur5_gripper_simulation.launch          ⭐ MAIN LAUNCH (starts everything)
 │   │   └── controller_utils.launch               # Robot State Publisher + Controllers
 │   ├── worlds/
-│   │   └── icl_ur5_setup.world                   # Gazebo simülasyon dünyası (AprilTag küp)
+│   │   └── icl_ur5_setup.world                   # Gazebo simulation world (AprilTag cube)
 │   └── config/
 │       ├── arm_controller_ur5.yaml               # UR5 trajectory controller config
 │       ├── gripper_controller_robotiq.yaml       # Gripper controller config
 │       ├── joint_state_controller.yaml           # Joint state publisher config
-│       └── pid_gains.yaml                        # PID kontrol parametreleri
+│       └── pid_gains.yaml                        # PID control parameters
 │
-├── 🤖 icl_ur5_setup_description/          # Robot Tanım (URDF/XACRO)
+├── 🤖 icl_ur5_setup_description/          # Robot Description (URDF/XACRO)
 │   ├── robots/
-│   │   ├── ur5_robotiq_85_joint_limited.xacro   # Ana robot montaj (UR5 + Gripper)
+│   │   ├── ur5_robotiq_85_joint_limited.xacro   # Main robot assembly (UR5 + Gripper)
 │   │   └── ...
 │   ├── urdf/
-│   │   ├── robotiq_arg2f_85_model_macro.xacro   # Robotiq 85 gripper tanımı
-│   │   ├── realsense.xacro                      # RealSense kamera (optical frame)
+│   │   ├── robotiq_arg2f_85_model_macro.xacro   # Robotiq 85 gripper definition
+│   │   ├── realsense.xacro                      # RealSense camera (optical frame)
 │   │   └── ...
 │   └── meshes/
-│       └── [3D model dosyaları]
+│       └── [3D model files]
 │
-├── 📐 icl_ur5_setup_moveit_config/        # MoveIt Konfigürasyonu
+├── 📐 icl_ur5_setup_moveit_config/        # MoveIt Configuration
 │   ├── launch/
 │   │   ├── move_group.launch                    # MoveIt planning node
-│   │   ├── moveit_rviz.launch                   # RViz başlatması
+│   │   ├── moveit_rviz.launch                   # RViz launch
 │   │   ├── trajectory_execution.launch.xml      # Trajectory execution
 │   │   ├── planning_context.launch              # Planning scene
 │   │   ├── ur5_gripper_moveit_controller_manager.launch.xml
@@ -163,33 +168,33 @@ ur5_with_robotiq_gripper/
 │   └── config/
 │       ├── ur5_gripper.srdf                     # Semantic robot (planning groups)
 │       ├── kinematics.yaml                      # IK solver (TRAC-IK)
-│       ├── joint_limits.yaml                    # Joint limitleri
-│       ├── ompl_planning.yaml                   # OMPL planner parametreleri
+│       ├── joint_limits.yaml                    # Joint limits
+│       ├── ompl_planning.yaml                   # OMPL planner parameters
 │       ├── controllers.yaml                     # ROS controller interface
-│       └── moveit.rviz                          # RViz default konfigürasyonu
+│       └── moveit.rviz                          # RViz default configuration
 │
 ├── 🎯 icl_ur5_setup_bringup/              # Pick-and-Place & AprilTag
 │   ├── launch/
-│   │   └── apriltag.launch                      # AprilTag detection başlatması
+│   │   └── apriltag.launch                      # AprilTag detection launch
 │   ├── node/
-│   │   ├── pick_and_place_task.py               # Ana pick-and-place algoritması
-│   │   └── default_pick_and_place.py            # Test pick-and-place (sabit koord.)
+│   │   ├── pick_and_place_task.py               # Main pick-and-place algorithm
+│   │   └── default_pick_and_place.py            # Test pick-and-place (fixed coords)
 │   └── config/
-│       ├── tags.yaml                            # AprilTag tanımları (ID, size)
-│       └── settings.yaml                        # Detection parametreleri
+│       ├── tags.yaml                            # AprilTag definitions (ID, size)
+│       └── settings.yaml                        # Detection parameters
 │
 └── 📚 universal_robot/                    # UR5 Robot Driver (external)
     └── ur_description/
         └── urdf/
-            ├── ur5.xacro                        # UR5 kolu URDF tanımı
-            └── common.gazebo.xacro             # Gazebo plugin'leri
+            ├── ur5.xacro                        # UR5 arm URDF definition
+            └── common.gazebo.xacro             # Gazebo plugins
 ```
 
 ---
 
-## ⭐ Launch Dosyası Analizi: `ur5_gripper_simulation.launch`
+## ⭐ Launch File Analysis: `ur5_gripper_simulation.launch`
 
-### 🔗 Include Zinciri
+### 🔗 Include Chain
 
 ```
 ur5_gripper_simulation.launch
@@ -218,42 +223,42 @@ ur5_gripper_simulation.launch
     └── moveit.rviz
 ```
 
-### 📝 Launch Parametreleri
+### 📝 Launch Parameters
 
-| Parametre | Default | Açıklama |
-|-----------|---------|----------|
-| `limited` | `true` | Joint limitlerini kullan |
-| `paused` | `false` | Simülasyonun başladığında duraklatılı olması |
-| `use_sim_time` | `true` | Gazebo simülasyon saatini kullan |
-| `gui` | `true` | Gazebo GUI'sini aç |
-| `headless` | `false` | Grafiksel arayüz olmadan çalış |
-| `debug` | `false` | Debug modunda gdb ile çalıştır |
-| `sim` | `true` | Simülasyon modu (MoveIt için) |
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `limited` | `true` | Use joint limits |
+| `paused` | `false` | Start the simulation paused |
+| `use_sim_time` | `true` | Use the Gazebo simulation clock |
+| `gui` | `true` | Open the Gazebo GUI |
+| `headless` | `false` | Run without a graphical interface |
+| `debug` | `false` | Run in debug mode with gdb |
+| `sim` | `true` | Simulation mode (for MoveIt) |
 
-### ⚙️ Başlatılan Bileşenler
+### ⚙️ Components Started
 
-| Bileşen | Türü | Görev |
-|---------|------|-------|
-| **Gazebo Server** | Simülatör | Fizik simülasyonu |
-| **Gazebo Client** | GUI | 3D görselleştirme |
-| **Robot State Publisher** | Node | TF yayınlama |
-| **Joint State Controller** | Controller | Joint state'lerini /joint_states'e publish |
-| **Arm Controller** | Trajectory Controller | UR5 kolu hareketi |
-| **Gripper Controller** | Position Controller | Robotiq gripper kontrolü |
-| **MoveIt Node** | Planning | Motion planning ve execution |
-| **RViz** | Görselleştirme | Planned trajectory gösterim |
+| Component | Type | Role |
+|-----------|------|------|
+| **Gazebo Server** | Simulator | Physics simulation |
+| **Gazebo Client** | GUI | 3D visualization |
+| **Robot State Publisher** | Node | Publishes TF |
+| **Joint State Controller** | Controller | Publishes joint states to /joint_states |
+| **Arm Controller** | Trajectory Controller | UR5 arm motion |
+| **Gripper Controller** | Position Controller | Robotiq gripper control |
+| **MoveIt Node** | Planning | Motion planning and execution |
+| **RViz** | Visualization | Displays the planned trajectory |
 
 ---
 
-## 🎮 Launch Komutları
+## 🎮 Launch Commands
 
-### 1. Tam Simülasyon (Önerilen)
+### 1. Full Simulation (Recommended)
 
 ```bash
 roslaunch icl_ur5_setup_gazebo ur5_gripper_simulation.launch
 ```
 
-**Başlatan:**
+**Starts:**
 - Gazebo + GUI
 - Robot model
 - MoveIt
@@ -261,19 +266,19 @@ roslaunch icl_ur5_setup_gazebo ur5_gripper_simulation.launch
 
 ---
 
-### 2. Simülasyon Başlangıç Parametreleri
+### 2. Simulation Start Parameters
 
 ```bash
-# Grafiksel arayüz olmadan (headless mode)
+# Without a graphical interface (headless mode)
 roslaunch icl_ur5_setup_gazebo ur5_gripper_simulation.launch headless:=true
 
-# Başlangıçta duraklatılı
+# Paused at start
 roslaunch icl_ur5_setup_gazebo ur5_gripper_simulation.launch paused:=true
 
-# Debug modunda (gdb ile)
+# In debug mode (with gdb)
 roslaunch icl_ur5_setup_gazebo ur5_gripper_simulation.launch debug:=true
 
-# Simulation saati kullanmadan
+# Without simulation clock
 roslaunch icl_ur5_setup_gazebo ur5_gripper_simulation.launch use_sim_time:=false
 ```
 
@@ -282,10 +287,10 @@ roslaunch icl_ur5_setup_gazebo ur5_gripper_simulation.launch use_sim_time:=false
 ### 3. AprilTag Detection
 
 ```bash
-# AprilTag detection başlat
+# Start AprilTag detection
 roslaunch icl_ur5_setup_bringup apriltag.launch
 
-# Parametrelerle
+# With parameters
 roslaunch icl_ur5_setup_bringup apriltag.launch \
   camera_frame:=realsense_color_optical_frame \
   tag_size:=0.05
@@ -296,75 +301,77 @@ roslaunch icl_ur5_setup_bringup apriltag.launch \
 ### 4. Pick-and-Place Node
 
 ```bash
-# Varsayılan parametrelerle
+# With default parameters
 rosrun icl_ur5_setup_bringup pick_and_place_task.py
 
-# Özel parametrelerle (rosparam ile)
+# With custom parameters (via rosparam)
 rosparam set /pick_and_place_task/gripper_tcp_offset 0.17
 rosparam set /pick_and_place_task/grasp_z_offset 0.0
 rosparam set /pick_and_place_task/approach_height 0.15
 rosrun icl_ur5_setup_bringup pick_and_place_task.py
 ```
 
-#### 🎯 Pick-and-Place Parametreleri
+#### 🎯 Pick-and-Place Parameters
 
-| Parametre | Default | Açıklama |
-|-----------|---------|----------|
+| Parameter | Default | Description |
+|-----------|---------|-------------|
 | `~arm_group` | `manipulator` | MoveIt arm planning group |
 | `~gripper_group` | `gripper` | MoveIt gripper group |
 | `~base_frame` | `base_link` | Robot base frame |
-| `~tag_frame` | `tag_0` | AprilTag frame adı |
-| `~camera_frame` | `realsense_color_optical_frame` | Kamera optical frame |
-| `~cube_size` | `0.05` | Hedef küp boyutu (metre) |
-| **`~gripper_tcp_offset`** | **`0.17`** | **Tool0'dan gripper uçlarına mesafe (m)** ⚠️ |
-| `~grasp_z_offset` | `0.0` | Ek Z offset (ince ayar için) |
-| `~approach_height` | `0.15` | Yaklaşma yüksekliği (metre) |
-| `~place_x/y/z` | `0.5/-0.2/0.5` | Bırakma pozisyonu |
+| `~tag_frame` | `tag_0` | AprilTag frame name |
+| `~camera_frame` | `realsense_color_optical_frame` | Camera optical frame |
+| `~cube_size` | `0.05` | Target cube size (meters) |
+| **`~gripper_tcp_offset`** | **`0.20`** | **Distance from tool0 to the gripper finger tips (m)** ⚠️ |
+| `~grasp_z_offset` | `0.02` | Extra Z offset (for fine tuning) |
+| `~approach_height` | `0.15` | Approach height (meters) |
+| `~place_x/y/z` | `0.5/-0.2/0.5` | Place pose |
 
-> ⚠️ **Önemli:** `gripper_tcp_offset` parametresi gripper'ın fiziksel boyutunu temsil eder. Bu değer, gripper'ın nesnenin içine girme sorununu çözer. Robotiq 85 için yaklaşık **0.16-0.18 m** aralığında olmalıdır.
+> ⚠️ **Important:** `gripper_tcp_offset` represents the physical extent of the
+> gripper. This value prevents the gripper from going inside the object. For the
+> Robotiq 85 it should be roughly **0.16–0.20 m**.
 
 ---
 
-## ⚙️ Konfigürasyon
+## ⚙️ Configuration
 
-### 🎛️ Controller Konfigürasyonları
+### 🎛️ Controller Configurations
 
 #### `arm_controller_ur5.yaml`
 ```yaml
-# UR5 robot kolu trajectory controller
-# Parametreler:
+# UR5 robot arm trajectory controller
+# Parameters:
 #   - type: JointTrajectoryController
 #   - joints: [shoulder_pan_joint, shoulder_lift_joint, ...]
 #   - action_monitor_rate: 10
-#   - constraints: Joint accuracy limitleri
+#   - constraints: Joint accuracy limits
 ```
 
 #### `gripper_controller_robotiq.yaml`
 ```yaml
 # Robotiq 85 gripper position controller
-# Parametreler:
-#   - type: EffortJointInterface
+# Parameters:
+#   - type: position_controllers/GripperActionController
 #   - joint: finger_joint
-#   - pid: PID kontrol parametreleri
+# (Effort control was tried and reverted — see the Troubleshooting note.)
 ```
 
 #### `joint_state_controller.yaml`
 ```yaml
-# Joint state'lerini /joint_states topic'ine publish eder
-# Publish rate: 50 Hz (varsayılan)
+# Publishes joint states to the /joint_states topic
+# Publish rate: 50 Hz (default)
 ```
 
 ---
 
-### 🗺️ MoveIt Konfigürasyonları
+### 🗺️ MoveIt Configurations
 
 #### `ur5_gripper.srdf`
 - **Planning Groups:**
-  - `manipulator`: UR5 kolunun 6 joint'i
+  - `manipulator`: the 6 joints of the UR5 arm
   - `gripper`: Robotiq gripper finger_joint
-  - `ur5_gripper_group`: Tamamı
+  - `ur5_gripper_group`: everything
 
-- **End-effector:** `gripper` (tool0 üzerine monte)
+- **End-effector:** `gripper` (mounted on tool0)
 
 #### `kinematics.yaml`
 ```yaml
@@ -376,8 +383,8 @@ manipulator:
 ```
 
 #### `joint_limits.yaml`
-- Tüm joint'ler için hız/ivme limitleri
-- Gripper finger_joint limitleri
+- Velocity/acceleration limits for all joints
+- Gripper finger_joint limits
 
 #### `ompl_planning.yaml`
 - **Planner:** RRT (default)
@@ -386,37 +393,43 @@ manipulator:
 
 ---
 
-### 📷 Kamera Konfigürasyonu
+### 📷 Camera Configuration
 
-**Dosya:** `icl_ur5_setup_description/robots/ur5_robotiq_85_joint_limited.xacro`
+**File:** `icl_ur5_setup_description/urdf/realsense.xacro`
+
+The camera is now defined once in `realsense.xacro` (a `realsense_camera` macro that
+the robot xacro includes) instead of being duplicated inline. It uses **two
+co-located sensors**: a plain RGB camera (publishes `camera/image_raw` +
+`camera/camera_info`, which AprilTag needs) and a depth sensor
+(`camera/depth/image_raw` + `camera/depth/points`).
 
 ```xml
-<!-- Camera mount -->
+<!-- Camera mount (on the wrist) -->
 <joint name="realsense_joint" type="fixed">
-  <parent link="wrist_3_link"/>
+  <parent link="${parent}"/>
   <child link="realsense_link"/>
-  <origin xyz="0 0.06 0.01" rpy="0.0 -1.5708 1.5708"/>
+  <origin xyz="0 0.06 0.01" rpy="0 -1.5708 1.5708"/>
 </joint>
 
-<!-- Gazebo plugin -->
-<plugin filename="libgazebo_ros_camera.so" name="realsense_camera_controller">
+<!-- RGB sensor plugin (AprilTag subscribes to these topics) -->
+<plugin name="realsense_color_controller" filename="libgazebo_ros_camera.so">
   <robotNamespace>/ur5</robotNamespace>
   <cameraName>realsense</cameraName>
   <imageTopicName>camera/image_raw</imageTopicName>
   <cameraInfoTopicName>camera/camera_info</cameraInfoTopicName>
-  <frameName>realsense_link</frameName>
+  <frameName>realsense_color_optical_frame</frameName>
 </plugin>
 ```
 
 ---
 
-## 🏗️ Sistem Mimarisi
+## 🏗️ System Architecture
 
-### 🔄 Veri Akışı
+### 🔄 Data Flow
 
 ```
 ┌──────────────────────────────────────────────────────────┐
-│                    GAZEBO SİMÜLATÖR                      │
+│                    GAZEBO SIMULATOR                       │
 │  ┌─────────────┐         ┌──────────────┐                │
 │  │ Robot Model │         │ Camera Sensor│                │
 │  └─────┬───────┘         └──────┬───────┘                │
@@ -463,43 +476,45 @@ manipulator:
                ▼
         ┌────────────────┐
         │ Gazebo Physics │
-        │ (Robot Hareket)│
+        │ (Robot Motion) │
         └────────────────┘
 ```
 
 ---
 
-### 📡 ROS Topic'leri
+### 📡 ROS Topics
 
-| Topic | Tip | Açıklama |
-|-------|-----|----------|
-| `/joint_states` | `sensor_msgs/JointState` | Tüm joint'lerin konumu/hızı |
-| `/ur5/realsense/camera/image_raw` | `sensor_msgs/Image` | Kamera görüntüsü |
-| `/ur5/realsense/camera/camera_info` | `sensor_msgs/CameraInfo` | Kamera kalibrasyon bilgisi |
-| `/tf` | `tf2_msgs/TFMessage` | TF frame dönüşümleri |
-| `/tag_detections` | `apriltag_ros/AprilTagDetectionArray` | AprilTag tespitleri |
-| `/arm_controller/follow_joint_trajectory/goal` | `control_msgs/FollowJointTrajectoryActionGoal` | Arm trajectory komutu |
-| `/gripper/command` | `std_msgs/Float64` | Gripper position komutu |
+| Topic | Type | Description |
+|-------|------|-------------|
+| `/joint_states` | `sensor_msgs/JointState` | Position/velocity of all joints |
+| `/ur5/realsense/camera/image_raw` | `sensor_msgs/Image` | Camera image |
+| `/ur5/realsense/camera/camera_info` | `sensor_msgs/CameraInfo` | Camera calibration info |
+| `/ur5/realsense/camera/depth/points` | `sensor_msgs/PointCloud2` | Depth point cloud (future use) |
+| `/tf` | `tf2_msgs/TFMessage` | TF frame transforms |
+| `/tag_detections` | `apriltag_ros/AprilTagDetectionArray` | AprilTag detections |
+| `/arm_controller/follow_joint_trajectory/goal` | `control_msgs/FollowJointTrajectoryActionGoal` | Arm trajectory command |
+| `/gripper/gripper_cmd/goal` | `control_msgs/GripperCommandActionGoal` | Gripper command (action) |
 
 ---
 
 ### 🔌 ROS Services
 
-| Service | Açıklama |
-|---------|----------|
-| `/move_group/plan_execution/set_parameters` | MoveIt parametreleri ayarla |
-| `/gazebo/set_physics_properties` | Fizik parametreleri |
-| `/gazebo/get_model_state` | Model pozisyonu sorgula |
+| Service | Description |
+|---------|-------------|
+| `/move_group/plan_execution/set_parameters` | Set MoveIt parameters |
+| `/gazebo/set_physics_properties` | Physics parameters |
+| `/gazebo/get_model_state` | Query a model's pose |
+| `/controller_manager/list_controllers` | List loaded controllers and their state |
 
 ---
 
-## 🗺️ TF Frame Ağacı
+## 🗺️ TF Frame Tree
 
-### Frame Hiyerarşisi
+### Frame Hierarchy
 
 ```
 world
-└── base_link (UR5 tabanı)
+└── base_link (UR5 base)
     ├── shoulder_link
     │   └── upper_arm_link
     │       └── forearm_link
@@ -512,196 +527,244 @@ world
     │                       │       ├── right_outer_knuckle
     │                       │       └── [gripper fingers...]
     │                       │
-    │                       └── realsense_link (Kamera)
+    │                       └── realsense_link (Camera)
     │                           └── realsense_color_optical_frame
     │                               └── tag_0 (AprilTag TF)
     │
     └── base_link_inertia
 ```
 
-### Önemli Frame'ler
+### Important Frames
 
-| Frame | Açıklama | Parent |
-|-------|----------|--------|
-| `world` | Gazebo dünya frame'i | - |
-| `base_link` | UR5 robot tabanı | `world` |
+| Frame | Description | Parent |
+|-------|-------------|--------|
+| `world` | Gazebo world frame | - |
+| `base_link` | UR5 robot base | `world` |
 | `tool0` | End-effector frame (gripper mount) | `wrist_3_link` |
-| `realsense_link` | Kamera fiziksel link | `wrist_3_link` |
-| `realsense_color_optical_frame` | Kamera optical frame (apriltag ref.) | `realsense_link` |
-| `tag_0` | AprilTag frame (detection sonucu) | `realsense_color_optical_frame` |
+| `realsense_link` | Physical camera link | `wrist_3_link` |
+| `realsense_color_optical_frame` | Camera optical frame (apriltag ref.) | `realsense_link` |
+| `tag_0` | AprilTag frame (detection result) | `realsense_color_optical_frame` |
 | `robotiq_arg2f_base_link` | Gripper base | `tool0` |
+
+> ℹ️ **Note on the z=1.2 spawn offset:** the robot is spawned at `z=1.2` in Gazebo,
+> but in the TF tree `world → base_link` is an identity transform. This is correct
+> and intentional — `base_link` is the planning root, and everything (camera, cube
+> target) is computed relative to `base_link`, not `world`. The Gazebo spawn height
+> is a physics-world offset that does not (and should not) appear in TF.
 
 ---
 
-### TF Yayınlama Frekansı
+### TF Publish Rates
 
-| Component | Frekans | Açıklama |
-|-----------|---------|----------|
-| `robot_state_publisher` | 50 Hz | URDF'den TF yayını |
-| `joint_state_controller` | 50 Hz | /joint_states yayını |
-| `Gazebo` | 1000 Hz | Fizik simülasyonu |
+| Component | Rate | Description |
+|-----------|------|-------------|
+| `robot_state_publisher` | 50 Hz | TF from URDF |
+| `joint_state_controller` | 50 Hz | /joint_states |
+| `Gazebo` | 1000 Hz | Physics simulation |
 | `AprilTag` | 30 Hz | Tag detection |
 
 ---
 
-## 🔧 Sorun Giderme
+## 🔧 Troubleshooting
 
-### ❌ Gazebo Açılmıyor
+> 🐳 If you are on **Ubuntu 22.04** (or any non-Focal system), use the ROS Noetic
+> container in the `docker/` folder instead of installing the project directly.
+> Details: [DOCKER.md](DOCKER.md).
 
-**Hata:**
+### 🧪 Issues Found and Fixed During Testing
+
+Issues found while testing the simulation end-to-end, all of which were **fixed**:
+
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| Node dies immediately (`exit code 127`) | Python nodes used `#!/usr/bin/env python`; Noetic only has `python3` | Shebangs changed to `python3` |
+| `rosdep` resolves no dependencies | Noetic reached EOL (May 2025); current `rosdep` skips EOL distros | `rosdep update --include-eol-distros` (in build_ws.sh) |
+| `catkin_make` can't find `soem`/controllers | The container strips the apt index | `build_ws.sh` now runs `apt-get update` first |
+| AprilTag not detecting (`/tag_detections` empty) | Camera was not publishing `camera_info` (a single depth plugin does not publish RGB camera_info) | Separate RGB + depth sensors ([realsense.xacro](ur5_with_robotiq_gripper/icl_ur5_setup_description/urdf/realsense.xacro)) |
+| Cube not graspable / floating in Gazebo | Cube was `<static>true</static>` with no support beneath it | Cube made dynamic + thin shelf + `gazebo_grasp_fix` plugin |
+| First move `ABORTED: CONTROL_FAILED` | First command sent before the robot settles after spawn | Added a settle delay + retry to the node |
+| Cube flung across the world at contact | Default contact-physics impulse | `contact_max_correcting_vel` lowered; collision-aware approach; Cartesian descent |
+
+> ⚠️ **About grasping:** reliably **gripping** a small 5 cm cube with the Robotiq 85
+> in Gazebo classic is a known-hard problem (position-controlled fingers + contact
+> physics). The full infrastructure is in place (dynamic cube, shelf, `grasp_fix`
+> plugin, collision-aware approach, Cartesian descent). The motion runs cleanly and
+> no longer flings the cube; a firm, repeatable lift still needs tuning of the grasp
+> height (`grasp_z_offset`) and the gripper closed value (`gripper_closed_position`).
+>
+> 🔬 **Effort/force control was tried and reverted:** switching the gripper from
+> position to effort control (`EffortJointInterface` +
+> `effort_controllers/GripperActionController`) is the standard way to bound the
+> squeeze force. However, the Robotiq's **underactuated closed-loop linkage + the
+> kinematic mimic-joint plugin** is incompatible with single-joint effort control:
+> `finger_joint` does not track the commanded position (the gripper won't close, the
+> joint drifts the wrong way even at high effort). Position control was therefore
+> restored (close=0.78, open=0.0, tracks precisely). The real fix would be a
+> dedicated Robotiq Gazebo controller that models the linkage properly.
+
+### ❌ Gazebo Won't Open
+
+**Error:**
 ```
 [Err] [World.cc:2214] Unable to read sdf string
 ```
 
-**Çözüm:**
+**Fix:**
 ```bash
-# URDF syntax'ı kontrol et
+# Check the URDF syntax
 rosrun xacro xacro ur5_robotiq_85_joint_limited.xacro > /tmp/robot.urdf
 check_urdf /tmp/robot.urdf
 
-# Duplicate link kontrol
+# Check for duplicate links
 grep -c 'link name="realsense_link"' /tmp/robot.urdf
-# Beklenen: 1
+# Expected: 1
 ```
 
 ---
 
-### ❌ "link 'realsense_link' is not unique" Hatası
+### ❌ "link 'realsense_link' is not unique" Error
 
-**Sebep:** URDF'de aynı link iki kez tanımlanmış
+**Cause:** the same link is defined twice in the URDF
 
-**Çözüm:**
-1. `ur5_robotiq_85_joint_limited.xacro` aç
-2. Duplicate camera tanımlarını bul ve sil
-3. Sadece bir `<link name="realsense_link">` kalmalı
+**Fix:**
+1. Open `ur5_robotiq_85_joint_limited.xacro`
+2. Find and remove the duplicate camera definitions
+3. Only one `<link name="realsense_link">` should remain
 
 ---
 
-### ❌ RViz Boş Gözüküyor
+### ❌ RViz Appears Empty
 
-**Hata:**
+**Error:**
 ```
 [ERROR] Unable to parse URDF from parameter '/robot_description'
 [ERROR] Robot model not loaded
 ```
 
-**Çözüm:**
+**Fix:**
 ```bash
-# robot_description parametresi kontrol et
+# Check the robot_description parameter
 rosparam get /robot_description | head -20
 
-# robot_state_publisher açık mı?
+# Is robot_state_publisher running?
 rosnode list | grep robot_state_publisher
 
-# node'u restart et
+# Restart the node
 rosnode kill /robot_state_publisher
 ```
 
 ---
 
-### ❌ AprilTag Tespit Edilmiyor
+### ❌ AprilTag Not Detected
 
-**Hata:** `/tag_detections` boş
+**Error:** `/tag_detections` is empty
 
-**Çözüm:**
+**Fix:**
 ```bash
-# Kamera görüntüsü geliyor mu?
+# Is the camera image coming through?
 rosrun rqt_image_view rqt_image_view
-# Topic seç: /ur5/realsense/camera/image_raw
+# Select topic: /ur5/realsense/camera/image_raw
 
-# Tag görüntüde net görünüyor mu kontrol et
-# Kamera pozisyonunu ayarla: ur5_robotiq_85_joint_limited.xacro
+# ⭐ MOST COMMON CAUSE: camera_info is not being published.
+# AprilTag waits for image_rect and camera_info together (synchronized).
+# If these don't arrive you see a "Synchronized pairs: 0" warning.
+rostopic hz /ur5/realsense/camera/image_raw    # should be ~30 Hz
+rostopic hz /ur5/realsense/camera/camera_info  # should be the SAME rate (0 = the problem)
 
-# Gazebo sensor'ü açık mı?
-rosservice call /gazebo/get_entity_state '{name: "ur5_gripper"}'
+# Is the arm in a pose where the camera can see the cube?
+# Is the tag_0 frame appearing?
+rosrun tf tf_echo base_link tag_0
 ```
+
+> 💡 A single `libgazebo_ros_depth_camera.so` plugin only publishes RGB
+> `camera_info` once the depth stream is consumed; AprilTag subscribes only to RGB,
+> so it receives 0 `camera_info`. That's why the camera is now defined as **two
+> separate sensors** (RGB + depth) — see `realsense.xacro`.
 
 ---
 
-### ❌ MoveIt Plan Başarısız Oluyor
+### ❌ MoveIt Planning Fails
 
-**Hata:**
+**Error:**
 ```
 [ERROR] Solution found but result path has large
 ```
 
-**Çözüm:**
+**Fix:**
 
 ```bash
-# Joint limits kontrol et
+# Check the joint limits
 rosparam get /robot_description_planning/joint_limits
 
-# IK solver kontrol et
+# Check the IK solver
 rosparam get /robot_description_kinematics/manipulator
 
-# Plan zamanını artır
+# Increase the planning time / range
 rosparam set /move_group/planner_configs/RRTkConfigDefault/range 0.5
 
-# Joint değerleri kontrol et
+# Check the joint values
 rostopic echo /joint_states
 ```
 
 ---
 
-### ❌ Gripper Kontrol Edilmiyor
+### ❌ Gripper Not Controlled
 
-**Hata:**
+**Error:**
 ```
 [WARN] Failed to control gripper
 ```
 
-**Çözüm:**
+**Fix:**
 ```bash
-# Gripper controller çalışıyor mu?
+# Is the gripper controller running?
 rosservice call /controller_manager/list_controllers
 
-# Gripper status kontrol et
-rosservice call /controller_manager/query_state_interface '{interface_type: EffortJointInterface}'
-
-# Topic manuel test
-rostopic pub /gripper/command std_msgs/Float64 -- 0.5
+# Test the gripper via the action interface
+rostopic pub /gripper/gripper_cmd/goal control_msgs/GripperCommandActionGoal \
+  "{goal: {command: {position: 0.5, max_effort: 40.0}}}" --once
 ```
 
 ---
 
-### ❌ Simulation Saati Senkronizasyonu
+### ❌ Simulation Clock Synchronization
 
-**Hata:**
+**Error:**
 ```
 [ERROR] TF: Cannot extrapolate into the future
 ```
 
-**Çözüm:**
+**Fix:**
 ```bash
-# use_sim_time parametresi kontrol et
+# Check the use_sim_time parameter
 rosparam get /use_sim_time
 
-# Gazebo'dan clock yayını gelip gelmediğini kontrol et
+# Check whether Gazebo is publishing the clock
 rostopic list | grep clock
 rostopic echo /clock | head -5
 ```
 
 ---
 
-## 🐛 Debug Komutları
+## 🐛 Debug Commands
 
 ```bash
-# TF ağacı görselleştir
+# Visualize the TF tree
 rosrun rqt_tf_tree rqt_tf_tree
 
-# Topic'leri izle
+# Watch topics
 rqt_topic
 
-# Node graph'ı gör
+# See the node graph
 rqt_graph
 
-# ROS parametrelerini düzenle
+# Edit ROS parameters
 rqt_reconfigure
 
-# Gazebo model state'lerini kontrol et
+# Check Gazebo model states
 rosservice call /gazebo/get_model_state '{model_name: "ur5_gripper", reference_frame: "world"}'
 
-# Joint values konrol et
+# Check joint values
 rostopic echo /joint_states
 
 # Controller status
@@ -710,42 +773,42 @@ rostopic echo /arm_controller/state
 
 ---
 
-## 📚 Dosya Referansları
+## 📚 File References
 
-### Önemli Yapılandırma Dosyaları
+### Important Configuration Files
 
 ```
 icl_ur5_setup_gazebo/
 ├── config/
 │   ├── arm_controller_ur5.yaml           ← UR5 trajectory controller
-│   ├── gripper_controller_robotiq.yaml   ← Gripper PID controller
+│   ├── gripper_controller_robotiq.yaml   ← Gripper controller
 │   └── joint_state_controller.yaml       ← Joint state publisher
 │
 └── worlds/
-    └── icl_ur5_setup.world               ← AprilTag küp konumu (0.4, 0.1, 1.4)
+    └── icl_ur5_setup.world               ← AprilTag cube position (0.4, 0.1, 1.4)
 ```
 
-### URDF/XACRO Dosyaları
+### URDF/XACRO Files
 
 ```
 icl_ur5_setup_description/
 ├── robots/
-│   └── ur5_robotiq_85_joint_limited.xacro  ← Ana montaj (camera + gripper)
+│   └── ur5_robotiq_85_joint_limited.xacro  ← Main assembly (camera + gripper)
 │
 └── urdf/
     ├── robotiq_arg2f_85_model_macro.xacro
     └── realsense.xacro
 ```
 
-### MoveIt Konfigürasyonu
+### MoveIt Configuration
 
 ```
 icl_ur5_setup_moveit_config/
 ├── config/
 │   ├── ur5_gripper.srdf                  ← Planning groups, end-effector
 │   ├── kinematics.yaml                   ← TRAC-IK solver
-│   ├── joint_limits.yaml                 ← Joint hız/ivme limitleri
-│   └── ompl_planning.yaml                ← Planner parametreleri
+│   ├── joint_limits.yaml                 ← Joint velocity/acceleration limits
+│   └── ompl_planning.yaml                ← Planner parameters
 │
 └── launch/
     ├── move_group.launch                 ← MoveIt planning node
@@ -754,34 +817,70 @@ icl_ur5_setup_moveit_config/
 
 ---
 
-## 📖 Kaynak Kodlar
+## 📖 Source Code
 
 - **Pick-and-Place:** `icl_ur5_setup_bringup/node/pick_and_place_task.py`
-- **AprilTag Konfigürasyon:** `icl_ur5_setup_bringup/config/tags.yaml`
-- **Simülasyon Dünyası:** `icl_ur5_setup_gazebo/worlds/icl_ur5_setup.world`
+- **AprilTag Configuration:** `icl_ur5_setup_bringup/config/tags.yaml`
+- **Simulation World:** `icl_ur5_setup_gazebo/worlds/icl_ur5_setup.world`
 
 ---
 
-## 🔗 Harici Kaynaklar
+## 🔗 External Resources
 
-- [UR5 Robot Driveri](https://github.com/UniversalRobots/Universal_Robots_ROS_Driver)
+- [UR5 Robot Driver](https://github.com/UniversalRobots/Universal_Robots_ROS_Driver)
 - [Robotiq Gripper ROS](https://github.com/ros-industrial/robotiq)
-- [MoveIt Dokümantasyonu](https://moveit.ros.org/)
+- [MoveIt Documentation](https://moveit.ros.org/)
 - [Gazebo ROS Control](http://gazebosim.org/tutorials?tut=ros_control)
 - [AprilTag ROS](https://github.com/AprilRobotics/apriltag_ros)
 
 ---
 
-## 📝 Lisans
+## 📊 Current Status of the Repository
 
-Bu proje eğitim ve araştırma amaçlı geliştirilmiştir.
+*Last verified: 2026-06-04 (full end-to-end run inside the ROS Noetic Docker container).*
+
+### ✅ Working
+
+| Component | Status | Notes |
+|-----------|--------|-------|
+| **Docker (Noetic on Ubuntu 22.04)** | ✅ Working | Image builds; X11 + `/dev/dri` GUI passthrough; Intel GPU direct rendering confirmed (`Mesa Intel Xe Graphics`). See [DOCKER.md](DOCKER.md). |
+| **Gazebo simulation** | ✅ Working | World, thin support shelf, and a dynamic AprilTag cube spawn correctly. GUI renders. |
+| **MoveIt + RViz** | ✅ Working | `move_group` up; RViz opens with the MoveIt display; "You can start planning now!" |
+| **Controllers** | ✅ Working | `arm_controller`, `joint_state_controller`, and `gripper` all report **running**. |
+| **Camera (RGB-D)** | ✅ Working | `image_raw` and `camera_info` both publish in sync at ~30 Hz (the key fix that lets AprilTag work). Depth point cloud also available for future use. |
+| **AprilTag detection** | ✅ Working | `/tag_detections` reports `id: [0]`; the `tag_0` TF resolves within ~5 mm of the cube's true position. |
+| **First-move stability** | ✅ Fixed | Startup settle + gripper-hold + retry: the home move now succeeds on the first try (no more `CONTROL_FAILED`). |
+| **Full pick-and-place motion** | ✅ Working | Runs end-to-end: home → detect tag → approach → Cartesian descend → close → retreat → place → open → home, with **no errors** ("Pick-and-place task completed"). |
+
+### ⚠️ Known Limitation
+
+| Component | Status | Notes |
+|-----------|--------|-------|
+| **Firm physical grasp / lift of the cube** | ⚠️ Not solved | The Robotiq 85 in Gazebo classic does not achieve a reliable grip on the 5 cm cube. Observed behavior brackets between two cases: at worst the grasp contact **ejects the cube** (it was flung ~7.7 m in one run); at best the gripper **brushes the cube ~5 cm** without lifting it. The cube is stable on its own (verified motionless for several seconds), so this is a gripper-contact problem, not a world-physics instability. |
+
+### 🔬 What Was Tried for the Grasp
+
+- **Position control (current):** `finger_joint` tracks precisely (close → 0.780, open → 0.000). Reliable for opening/closing, but the contact model doesn't hold the cube firmly.
+- **Effort/force control (reverted):** intended to bound the squeeze force, but the Robotiq's underactuated closed-loop linkage + kinematic mimic-joint plugin does not track under single-joint effort control (`finger_joint` drifts the wrong way and the gripper won't close, even at high `max_effort`). Reverted to position control. See the Troubleshooting note above.
+- **Infrastructure in place:** dynamic cube, thin support shelf, `gazebo_grasp_fix` plugin (attaches a grasped object via a fixed joint), collision-aware approach (adds shelf + cube to the planning scene), and a straight-down Cartesian descent so the arm doesn't sweep sideways into the cube.
+
+### 🚀 The Two Real Paths Forward for Grasping
+
+1. **A dedicated Robotiq Gazebo controller** that models the underactuated linkage properly (rather than the kinematic mimic-joint hack). This is the "correct" fix but a sizable undertaking.
+2. **Accept the current state**: a complete, clean pick-and-place *motion* over a genuinely dynamic cube with all perception, planning, and infrastructure working, treating the firm grasp as out of scope for the simulation.
+
+---
+
+## 📝 License
+
+This project was developed for educational and research purposes.
 
 ---
 
 <div align="center">
 
-**Sorularınız için:** [Issues](https://github.com/mates1414/robotic_arm/issues) bölümünü kullanın
+**For questions:** use the [Issues](https://github.com/mates1414/robotic_arm/issues) section
 
-**Son güncelleme:** 29 Ekim 2025
+**Last updated:** 2026-06-04
 
 </div>

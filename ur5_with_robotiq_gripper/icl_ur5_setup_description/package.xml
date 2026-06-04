@@ -11,8 +11,12 @@
 
   <buildtool_depend>catkin</buildtool_depend>
   <exec_depend>urdf</exec_depend>
+  <!-- Required so Gazebo's paths plugin ingests the gazebo_media_path export
+       below (rospack only inspects exports of packages that depend on gazebo_ros).
+       Without this the relative material <uri>s in the world won't resolve. -->
+  <exec_depend>gazebo_ros</exec_depend>
 
-    <export>
+  <export>
     <gazebo_ros gazebo_media_path="${prefix}"/>
   </export>
 </package>

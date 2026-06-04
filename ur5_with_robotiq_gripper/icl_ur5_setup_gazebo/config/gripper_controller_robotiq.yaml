@@ -10,5 +10,11 @@ gripper:
 #  state_publish_rate:  25
 #  action_monitor_rate: 10
 
+  # Position-based gripper (GripperCommand action -> /gripper/gripper_cmd).
+  # Drives finger_joint to the commanded angle; the mimic-joint plugin makes the
+  # coupled fingers follow. Reliable for this Robotiq model.
+  # (effort_controllers/GripperActionController was tried for a force-bounded
+  # squeeze but does not track with the mimic-joint linkage — see the transmission
+  # xacro note.)
   type: "position_controllers/GripperActionController"
   joint: finger_joint

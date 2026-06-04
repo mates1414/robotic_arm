@@ -1,0 +1,44 @@
+# ROS Noetic dev container for the UR5 + Robotiq + AprilTag project.
+# Usage (from this docker/ folder):  ./run.sh   (or: docker compose up -d --build)
+services:
+  ur5:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # Override with `USER_UID=$(id -u) USER_GID=$(id -g) docker compose build`
+        # if your host UID/GID is not 1000.
+        USER_UID: ${USER_UID:-1000}
+        USER_GID: ${USER_GID:-1000}
+    image: ur5_noetic:latest
+    container_name: ur5_noetic
+
+    # Host networking keeps ROS topics and the X server simple (single machine).
+    network_mode: host
+
+    # Mount the repo root (which is the catkin `src/`, note the toplevel
+    # CMakeLists.txt symlink) into the workspace. Edits on the host are live
+    # in the container; build/ and devel/ are created here too.
+    volumes:
+      - ../:/home/ros/catkin_ws/src:rw
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+
+    environment:
+      - DISPLAY=${DISPLAY}
+      - QT_X11_NO_MITSHM=1
+      - LIBGL_ALWAYS_INDIRECT=0
+      - NO_AT_BRIDGE=1
+
+    # Intel/AMD integrated GPU acceleration for Gazebo/RViz.
+    devices:
+      - /dev/dri:/dev/dri
+    # Numeric GIDs of the host's `video` (44) and `render` (110) groups so the
+    # container process may open /dev/dri/* . Verify with `getent group render`.
+    group_add:
+      - "44"
+      - "110"
+
+    stdin_open: true
+    tty: true
+    # Keep the container alive; you `exec` shells into it as needed.
+    command: sleep infinity

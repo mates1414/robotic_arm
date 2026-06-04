@@ -4,6 +4,12 @@
     <transmission name="${prefix}finger_joint_trans">
       <type>transmission_interface/SimpleTransmission</type>
       <joint name="${prefix}finger_joint">
+        <!-- Position interface. NOTE: effort/force control was tried here to get
+             a gentle squeeze, but the Robotiq's underactuated closed-loop linkage
+             driven by the kinematic mimic-joint plugin does not track under
+             single-joint effort control (the gripper won't close). Position
+             control drives finger_joint to a setpoint and the mimic joints follow
+             consistently, so it is the reliable choice for this model. -->
         <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
       </joint>
       <actuator name="${prefix}finger_joint_motor">

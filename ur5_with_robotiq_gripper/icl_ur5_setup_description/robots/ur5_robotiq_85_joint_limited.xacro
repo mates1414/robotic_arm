@@ -4,6 +4,7 @@
   <xacro:include filename="$(find ur_description)/urdf/common.gazebo.xacro" />
   <xacro:include filename="$(find ur_description)/urdf/ur5.xacro" />
   <xacro:include filename="$(find icl_ur5_setup_description)/urdf/robotiq_arg2f_85_model_macro.xacro" />
+  <xacro:include filename="$(find icl_ur5_setup_description)/urdf/realsense.xacro" />
   <!-- <xacro:include filename="$(find icl_ur5_setup_description)/urdf/robotiq_fts300.urdf.xacro" /> -->
   
   <xacro:macro name="ur5_with_gripper_joint_limited" params="prefix">
@@ -47,47 +48,8 @@
       <origin xyz="0 0 0.17" rpy="0 0 0"/>
     </joint> 
 
-    <!-- Camera link -->
-    <link name="realsense_link">
-      <visual>
-        <geometry>
-          <box size="0.04 0.04 0.025"/>
-        </geometry>
-        <material name="gray">
-          <color rgba="0.5 0.5 0.5 1"/>
-        </material>
-      </visual>
-      <collision>
-        <geometry>
-          <box size="0.04 0.04 0.025"/>
-        </geometry>
-      </collision>
-      <inertial>
-        <mass value="0.07"/>
-        <origin xyz="0 0 0" rpy="0 0 0"/>
-        <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001"/>
-      </inertial>
-    </link>
-
-    <!-- Fixed joint to attach camera to wrist_3_link, offset up and forward -->
-    <joint name="realsense_joint" type="fixed">
-      <parent link="${prefix}wrist_3_link"/>
-      <child link="realsense_link"/>
-      <origin xyz="0 0.06 0.01" rpy="0.0 -1.5708 1.5708"/>
-    </joint>
-
-    <!-- Optical frame for camera (ROS optical convention: X=right, Y=down, Z=forward) -->
-    <link name="realsense_color_optical_frame"/>
-    
-    <joint name="realsense_optical_joint" type="fixed">
-      <parent link="realsense_link"/>
-      <child link="realsense_color_optical_frame"/>
-      <!-- Rotate from camera body frame to optical frame:
-           Camera body: X=forward, Y=left, Z=up
-           Optical: X=right, Y=down, Z=forward
-           Rotation: -pi/2 around X, then -pi/2 around Z -->
-      <origin xyz="0 0 0" rpy="-1.5708 0 -1.5708"/>
-    </joint>
+    <!-- Wrist-mounted depth (RGB-D) camera — defined in realsense.xacro -->
+    <xacro:realsense_camera parent="${prefix}wrist_3_link"/>
 
     <!-- <link name="${prefix}tool" />
     <joint name="tool_tip" type="fixed">
@@ -99,32 +61,32 @@
 
   <xacro:ur5_with_gripper_joint_limited prefix=""/>
 
- <!-- Camera Plugin -->
-  <gazebo reference="realsense_link">
-    <sensor type="camera" name="realsense_camera">
-      <always_on>true</always_on>
-      <update_rate>30</update_rate>
-      <visualize>true</visualize>
-      <camera>
-        <horizontal_fov>1.3962634</horizontal_fov>
-        <image>
-          <width>640</width>
-          <height>480</height>
-          <format>R8G8B8</format>
-        </image>
-        <clip>
-          <near>0.1</near>
-          <far>5.0</far>
-        </clip>
-      </camera>
-      <plugin name="realsense_camera_controller" filename="libgazebo_ros_camera.so">
-        <robotNamespace>/ur5</robotNamespace>
-        <cameraName>realsense</cameraName>
-        <imageTopicName>camera/image_raw</imageTopicName>
-        <cameraInfoTopicName>camera/camera_info</cameraInfoTopicName>
-        <frameName>realsense_color_optical_frame</frameName>
-        <hackBaseline>0.07</hackBaseline>
-      </plugin>
-    </sensor>
+  <!-- Grasp-fix plugin. Robotiq parallel grasps are unreliable in Gazebo classic
+       (the cube slips out from between the finger pads). This plugin detects a
+       stable grip between the gripper links and an object, attaches it to the
+       palm with a temporary fixed joint, and releases when the gripper opens.
+       Provided by ros-noetic-roboticsgroup-upatras-gazebo-plugins. -->
+  <gazebo>
+    <plugin name="gazebo_grasp_fix" filename="libgazebo_grasp_fix.so">
+      <arm>
+        <arm_name>ur5_gripper</arm_name>
+        <!-- Gazebo lumps fixed-jointed links into their parent: the gripper base
+             (robotiq_arg2f_base_link) merges into wrist_3_link, and the
+             *_finger_tip links merge into the *_inner_finger links. So use the
+             real Gazebo link names here, not the URDF ones. -->
+        <palm_link>wrist_3_link</palm_link>
+        <gripper_link>left_inner_finger</gripper_link>
+        <gripper_link>right_inner_finger</gripper_link>
+      </arm>
+      <forces_angle_tolerance>120</forces_angle_tolerance>
+      <update_rate>15</update_rate>
+      <grip_count_threshold>1</grip_count_threshold>
+      <max_grip_count>3</max_grip_count>
+      <release_tolerance>0.008</release_tolerance>
+      <!-- Once a grip is detected, stop the fingers colliding with the object so
+           the position-controlled gripper can't crush/launch the light cube. -->
+      <disable_collisions_on_attach>true</disable_collisions_on_attach>
+      <contact_topic>__default_topic__</contact_topic>
+    </plugin>
   </gazebo>
 </robot>
