@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>ur5_robotiq_description</name>
+  <version>0.1.0</version>
+  <description>URDF of the UR5 with a Robotiq 2F-85 gripper and a wrist camera for Gazebo 11.</description>
+  <maintainer email="mates21@ku.edu.tr">mates</maintainer>
+  <!-- The Robotiq 2F-85 model comes from icl_ur5_setup_description (GPL-3.0, see LICENSE), which took it from
+       ros-industrial/robotiq -->
+  <license>GPL-3.0-only</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <exec_depend>gazebo_ros_control</exec_depend>
+  <exec_depend>joint_state_publisher_gui</exec_depend>
+  <exec_depend>robot_state_publisher</exec_depend>
+  <exec_depend>roboticsgroup_upatras_gazebo_plugins</exec_depend>
+  <exec_depend>rviz</exec_depend>
+  <exec_depend>ur5_robotiq_gazebo_plugins</exec_depend>
+  <exec_depend>ur_description</exec_depend>
+  <exec_depend>ur_gazebo</exec_depend>
+  <exec_depend>xacro</exec_depend>
+</package>

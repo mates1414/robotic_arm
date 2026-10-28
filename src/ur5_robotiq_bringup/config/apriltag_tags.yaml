@@ -1,0 +1,6 @@
+# Tags to detect. size is the edge of the black square (without the white border): 0.04 m on the 5 cm cube.
+standalone_tags:
+  [
+    {id: 0, size: 0.04, name: tag_0}
+  ]
+tag_bundles: []

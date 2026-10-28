@@ -1,0 +1,68 @@
+<?xml version="1.0"?>
+<!-- RGB camera on the wrist, looking along the gripper (used for AprilTag detection).
+
+     Gazebo publishes /ur5/wrist_camera/image_raw and /ur5/wrist_camera/camera_info in wrist_camera_optical_frame
+     (ROS optical convention: x right, y down, z forward). The simulated image has no distortion, so image_raw can
+     be used as a rectified image. -->
+<robot xmlns:xacro="http://wiki.ros.org/xacro">
+  <xacro:macro name="wrist_camera" params="prefix parent *origin">
+    <link name="${prefix}wrist_camera_link">
+      <visual>
+        <geometry>
+          <box size="0.025 0.09 0.025"/>
+        </geometry>
+        <material name="wrist_camera_grey">
+          <color rgba="0.5 0.5 0.5 1.0"/>
+        </material>
+      </visual>
+      <collision>
+        <geometry>
+          <box size="0.025 0.09 0.025"/>
+        </geometry>
+      </collision>
+      <inertial>
+        <mass value="0.072"/>
+        <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6"/>
+      </inertial>
+    </link>
+    <joint name="${prefix}wrist_camera_joint" type="fixed">
+      <xacro:insert_block name="origin"/>
+      <parent link="${parent}"/>
+      <child link="${prefix}wrist_camera_link"/>
+    </joint>
+
+    <!-- wrist_camera_link looks along its x axis (Gazebo camera convention) -->
+    <link name="${prefix}wrist_camera_optical_frame"/>
+    <joint name="${prefix}wrist_camera_optical_joint" type="fixed">
+      <origin xyz="0 0 0" rpy="${-pi / 2} 0 ${-pi / 2}"/>
+      <parent link="${prefix}wrist_camera_link"/>
+      <child link="${prefix}wrist_camera_optical_frame"/>
+    </joint>
+
+    <gazebo reference="${prefix}wrist_camera_link">
+      <sensor type="camera" name="wrist_camera">
+        <always_on>true</always_on>
+        <update_rate>30</update_rate>
+        <camera>
+          <horizontal_fov>1.3962634</horizontal_fov>
+          <image>
+            <width>640</width>
+            <height>480</height>
+            <format>R8G8B8</format>
+          </image>
+          <clip>
+            <near>0.05</near>
+            <far>5.0</far>
+          </clip>
+        </camera>
+        <plugin name="wrist_camera_controller" filename="libgazebo_ros_camera.so">
+          <robotNamespace>/ur5</robotNamespace>
+          <cameraName>wrist_camera</cameraName>
+          <frameName>${prefix}wrist_camera_optical_frame</frameName>
+          <imageTopicName>image_raw</imageTopicName>
+          <cameraInfoTopicName>camera_info</cameraInfoTopicName>
+        </plugin>
+      </sensor>
+    </gazebo>
+  </xacro:macro>
+</robot>

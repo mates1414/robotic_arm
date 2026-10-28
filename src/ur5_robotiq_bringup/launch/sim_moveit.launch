@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<!-- Gazebo simulation + MoveIt (move_group and RViz with the MotionPlanning panel), optionally AprilTag detection. -->
+<launch>
+  <arg name="gui" default="true" doc="Start the Gazebo GUI?"/>
+  <arg name="launch_rviz" default="true" doc="Launch RViz?"/>
+  <arg name="apriltag" default="false" doc="Start AprilTag detection on the wrist camera?"/>
+
+  <include file="$(find ur5_robotiq_bringup)/launch/sim.launch">
+    <arg name="gui" value="$(arg gui)"/>
+    <arg name="launch_rviz" value="false"/>
+  </include>
+
+  <include file="$(find ur5_robotiq_moveit_config)/launch/move_group.launch"/>
+  <include if="$(arg launch_rviz)" file="$(find ur5_robotiq_moveit_config)/launch/moveit_rviz.launch"/>
+
+  <include if="$(arg apriltag)" file="$(find ur5_robotiq_bringup)/launch/apriltag.launch"/>
+</launch>

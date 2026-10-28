@@ -1,0 +1,194 @@
+<?xml version="1.0"?>
+<!-- Robotiq 2F-85 for Gazebo 11 (gazebo_ros_control).
+
+     Kinematics, inertias and meshes follow ros-industrial/robotiq (robotiq_arg2f_85_model_macro.xacro), which has no
+     Noetic binary release. The finger pads are boxes instead of meshes.
+
+     Only finger_joint is actuated (position interface). The five other joints carry a <mimic> tag for MoveIt and
+     robot_state_publisher; Gazebo 11 ignores <mimic>, so the roboticsgroup_upatras mimic plugin drives them in the
+     simulation. -->
+<robot xmlns:xacro="http://wiki.ros.org/xacro">
+
+  <xacro:property name="robotiq_mesh_dir" value="package://ur5_robotiq_description/meshes/robotiq_2f_85"/>
+
+  <xacro:macro name="robotiq_2f_85_mesh_link" params="name mesh color *inertial">
+    <link name="${name}">
+      <xacro:insert_block name="inertial"/>
+      <visual>
+        <geometry>
+          <mesh filename="${robotiq_mesh_dir}/${mesh}.dae" scale="0.001 0.001 0.001"/>
+        </geometry>
+        <material name="robotiq_${color}"/>
+      </visual>
+      <collision>
+        <geometry>
+          <mesh filename="${robotiq_mesh_dir}/${mesh}.dae" scale="0.001 0.001 0.001"/>
+        </geometry>
+      </collision>
+    </link>
+  </xacro:macro>
+
+  <!-- Links and joints of one finger. reflect is 1 (left) or -1 (right). -->
+  <xacro:macro name="robotiq_2f_85_finger" params="prefix side reflect">
+    <xacro:robotiq_2f_85_mesh_link name="${prefix}${side}_outer_knuckle" mesh="outer_knuckle" color="grey">
+      <inertial>
+        <origin xyz="-0.0002 0.0199435877845359 0.0292245259211331" rpy="0 0 0"/>
+        <mass value="0.00853198276973456"/>
+        <inertia ixx="2.89328108496468E-06" ixy="0" ixz="0" iyy="1.86719750325683E-06" iyz="-1.21858577871576E-06"
+                 izz="1.21905238907251E-06"/>
+      </inertial>
+    </xacro:robotiq_2f_85_mesh_link>
+
+    <xacro:robotiq_2f_85_mesh_link name="${prefix}${side}_outer_finger" mesh="outer_finger" color="black">
+      <inertial>
+        <origin xyz="0.00030115855001899 0.0373907951953854 -0.0208027427000385" rpy="0 0 0"/>
+        <mass value="0.022614240507152"/>
+        <inertia ixx="1.52518312458174E-05" ixy="9.76583423954399E-10" ixz="-5.43838577022588E-10"
+                 iyy="6.17694243867776E-06" iyz="6.78636130740228E-06" izz="1.16494917907219E-05"/>
+      </inertial>
+    </xacro:robotiq_2f_85_mesh_link>
+
+    <xacro:robotiq_2f_85_mesh_link name="${prefix}${side}_inner_knuckle" mesh="inner_knuckle" color="black">
+      <inertial>
+        <origin xyz="0.000123011831763771 0.0507850843201817 0.00103968640075166" rpy="0 0 0"/>
+        <mass value="0.0271177346495152"/>
+        <inertia ixx="2.61910379223783E-05" ixy="-2.43616858946494E-07" ixz="-6.37789906117123E-09"
+                 iyy="2.8270243746167E-06" iyz="-5.37200748039765E-07" izz="2.83695868220296E-05"/>
+      </inertial>
+    </xacro:robotiq_2f_85_mesh_link>
+
+    <xacro:robotiq_2f_85_mesh_link name="${prefix}${side}_inner_finger" mesh="inner_finger" color="black">
+      <inertial>
+        <origin xyz="0.0003 0.0160078233491243 -0.0136945669206257" rpy="0 0 0"/>
+        <mass value="0.0104003125914103"/>
+        <inertia ixx="2.71909453810972E-06" ixy="0" ixz="0" iyy="7.69100314106116E-07" iyz="6.74715432769696E-07"
+                 izz="2.30315190420171E-06"/>
+      </inertial>
+    </xacro:robotiq_2f_85_mesh_link>
+
+    <!-- Finger pad. No inertial: Gazebo merges it into the inner finger. -->
+    <link name="${prefix}${side}_finger_tip">
+      <visual>
+        <geometry>
+          <box size="0.022 0.00635 0.0375"/>
+        </geometry>
+        <material name="robotiq_black"/>
+      </visual>
+      <collision>
+        <geometry>
+          <box size="0.022 0.00635 0.0375"/>
+        </geometry>
+      </collision>
+    </link>
+
+    <!-- The left outer knuckle hangs on finger_joint (robotiq_2f_85 macro below) -->
+    <xacro:if value="${reflect == -1}">
+      <joint name="${prefix}right_outer_knuckle_joint" type="revolute">
+        <origin xyz="0 0.0306011 0.054904" rpy="0 0 0"/>
+        <parent link="${prefix}robotiq_arg2f_base_link"/>
+        <child link="${prefix}right_outer_knuckle"/>
+        <axis xyz="1 0 0"/>
+        <limit lower="0" upper="0.8" velocity="2.0" effort="1000"/>
+        <mimic joint="${prefix}finger_joint" multiplier="1" offset="0"/>
+      </joint>
+    </xacro:if>
+    <joint name="${prefix}${side}_outer_finger_joint" type="fixed">
+      <origin xyz="0 0.0315 -0.0041" rpy="0 0 0"/>
+      <parent link="${prefix}${side}_outer_knuckle"/>
+      <child link="${prefix}${side}_outer_finger"/>
+    </joint>
+    <joint name="${prefix}${side}_inner_knuckle_joint" type="revolute">
+      <origin xyz="0 ${reflect * -0.0127} 0.06142" rpy="0 0 ${(1 + reflect) * pi / 2}"/>
+      <parent link="${prefix}robotiq_arg2f_base_link"/>
+      <child link="${prefix}${side}_inner_knuckle"/>
+      <axis xyz="1 0 0"/>
+      <limit lower="0" upper="0.8757" velocity="2.0" effort="1000"/>
+      <mimic joint="${prefix}finger_joint" multiplier="1" offset="0"/>
+    </joint>
+    <joint name="${prefix}${side}_inner_finger_joint" type="revolute">
+      <origin xyz="0 0.0061 0.0471" rpy="0 0 0"/>
+      <parent link="${prefix}${side}_outer_finger"/>
+      <child link="${prefix}${side}_inner_finger"/>
+      <axis xyz="1 0 0"/>
+      <limit lower="-0.8757" upper="0" velocity="2.0" effort="1000"/>
+      <mimic joint="${prefix}finger_joint" multiplier="-1" offset="0"/>
+    </joint>
+    <joint name="${prefix}${side}_finger_tip_joint" type="fixed">
+      <origin xyz="0 -0.0220203446692936 0.03242" rpy="0 0 0"/>
+      <parent link="${prefix}${side}_inner_finger"/>
+      <child link="${prefix}${side}_finger_tip"/>
+    </joint>
+  </xacro:macro>
+
+  <xacro:macro name="robotiq_2f_85_mimic_plugin" params="prefix joint multiplier">
+    <gazebo>
+      <plugin filename="libroboticsgroup_upatras_gazebo_mimic_joint_plugin.so" name="${prefix}mimic_${joint}">
+        <joint>${prefix}finger_joint</joint>
+        <mimicJoint>${prefix}${joint}</mimicJoint>
+        <multiplier>${multiplier}</multiplier>
+      </plugin>
+    </gazebo>
+  </xacro:macro>
+
+  <!-- finger_joint: 0.0 open ... 0.8 closed -->
+  <xacro:macro name="robotiq_2f_85" params="prefix parent *origin">
+    <material name="robotiq_grey">
+      <color rgba="0.79 0.82 0.93 1"/>
+    </material>
+    <material name="robotiq_black">
+      <color rgba="0.1 0.1 0.1 1"/>
+    </material>
+
+    <link name="${prefix}robotiq_arg2f_base_link">
+      <inertial>
+        <origin xyz="8.625E-08 -4.6583E-06 0.03145" rpy="0 0 0"/>
+        <mass value="0.22652"/>
+        <inertia ixx="0.00020005" ixy="-4.2442E-10" ixz="-2.9069E-10" iyy="0.00017832" iyz="-3.4402E-08"
+                 izz="0.00013478"/>
+      </inertial>
+      <visual>
+        <geometry>
+          <mesh filename="${robotiq_mesh_dir}/base_link_fine.stl"/>
+        </geometry>
+        <material name="robotiq_black"/>
+      </visual>
+      <collision>
+        <origin xyz="0 0 0" rpy="0 0 ${pi / 2}"/>
+        <geometry>
+          <mesh filename="${robotiq_mesh_dir}/base_link_coarse.stl"/>
+        </geometry>
+      </collision>
+    </link>
+    <joint name="${prefix}robotiq_arg2f_base_joint" type="fixed">
+      <xacro:insert_block name="origin"/>
+      <parent link="${parent}"/>
+      <child link="${prefix}robotiq_arg2f_base_link"/>
+    </joint>
+
+    <joint name="${prefix}finger_joint" type="revolute">
+      <origin xyz="0 -0.0306011 0.054904" rpy="0 0 ${pi}"/>
+      <parent link="${prefix}robotiq_arg2f_base_link"/>
+      <child link="${prefix}left_outer_knuckle"/>
+      <axis xyz="1 0 0"/>
+      <limit lower="0" upper="0.8" velocity="2.0" effort="1000"/>
+    </joint>
+    <xacro:robotiq_2f_85_finger prefix="${prefix}" side="left" reflect="1"/>
+    <xacro:robotiq_2f_85_finger prefix="${prefix}" side="right" reflect="-1"/>
+
+    <transmission name="${prefix}finger_joint_trans">
+      <type>transmission_interface/SimpleTransmission</type>
+      <joint name="${prefix}finger_joint">
+        <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+      </joint>
+      <actuator name="${prefix}finger_joint_motor">
+        <mechanicalReduction>1</mechanicalReduction>
+      </actuator>
+    </transmission>
+
+    <xacro:robotiq_2f_85_mimic_plugin prefix="${prefix}" joint="right_outer_knuckle_joint" multiplier="1.0"/>
+    <xacro:robotiq_2f_85_mimic_plugin prefix="${prefix}" joint="left_inner_knuckle_joint" multiplier="1.0"/>
+    <xacro:robotiq_2f_85_mimic_plugin prefix="${prefix}" joint="right_inner_knuckle_joint" multiplier="1.0"/>
+    <xacro:robotiq_2f_85_mimic_plugin prefix="${prefix}" joint="left_inner_finger_joint" multiplier="-1.0"/>
+    <xacro:robotiq_2f_85_mimic_plugin prefix="${prefix}" joint="right_inner_finger_joint" multiplier="-1.0"/>
+  </xacro:macro>
+</robot>

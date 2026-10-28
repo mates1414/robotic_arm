@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<!-- RViz with the MotionPlanning panel (move_group must be running) -->
+<launch>
+  <node name="rviz_moveit" pkg="rviz" type="rviz" output="log"
+        args="-d $(find ur5_robotiq_moveit_config)/config/moveit.rviz">
+    <rosparam command="load" file="$(find ur5_robotiq_moveit_config)/config/kinematics.yaml"/>
+  </node>
+</launch>

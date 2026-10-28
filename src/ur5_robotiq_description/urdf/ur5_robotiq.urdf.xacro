@@ -1,0 +1,95 @@
+<?xml version="1.0"?>
+<!-- UR5 + Robotiq 2F-85 + wrist camera for Gazebo 11 (gazebo_ros_control).
+
+     The arm is ur_gazebo's ur_robot_gazebo macro (ur_description's ur_robot plus the gazebo_ros_control plugin), so
+     the arguments mirror ur_gazebo/urdf/ur.xacro. Arm and gripper share that one gazebo_ros_control instance. -->
+<robot xmlns:xacro="http://wiki.ros.org/xacro" name="ur5_robotiq">
+  <xacro:arg name="joint_limit_params" default="$(find ur_description)/config/ur5/joint_limits.yaml"/>
+  <xacro:arg name="kinematics_params" default="$(find ur_description)/config/ur5/default_kinematics.yaml"/>
+  <xacro:arg name="physical_params" default="$(find ur_description)/config/ur5/physical_parameters.yaml"/>
+  <xacro:arg name="visual_params" default="$(find ur_description)/config/ur5/visual_parameters.yaml"/>
+  <xacro:arg name="transmission_hw_interface" default="hardware_interface/PositionJointInterface"/>
+  <xacro:arg name="safety_limits" default="false"/>
+  <xacro:arg name="safety_pos_margin" default="0.15"/>
+  <xacro:arg name="safety_k_position" default="20"/>
+  <!-- Gazebo model (with a link named `link`) that the grasp attachment fixes to the gripper -->
+  <xacro:arg name="grasp_object" default="apriltag_cube"/>
+
+  <xacro:include filename="$(find ur_gazebo)/urdf/ur_macro.xacro"/>
+  <xacro:include filename="$(find ur5_robotiq_description)/urdf/robotiq_2f_85_macro.xacro"/>
+  <xacro:include filename="$(find ur5_robotiq_description)/urdf/wrist_camera_macro.xacro"/>
+
+  <link name="world"/>
+
+  <!-- Floor as a robot link so that MoveIt plans around it. It has no inertia, so Gazebo leaves it out (the world
+       has its own ground plane). -->
+  <link name="ground_plane">
+    <visual>
+      <geometry>
+        <box size="3 3 0.01"/>
+      </geometry>
+      <material name="ground_white">
+        <color rgba="1 1 1 0.5"/>
+      </material>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="3 3 0.01"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="ground_plane_joint" type="fixed">
+    <origin xyz="0 0 -0.006" rpy="0 0 0"/>
+    <parent link="world"/>
+    <child link="ground_plane"/>
+  </joint>
+
+  <!-- arm -->
+  <xacro:ur_robot_gazebo
+    prefix=""
+    joint_limits_parameters_file="$(arg joint_limit_params)"
+    kinematics_parameters_file="$(arg kinematics_params)"
+    physical_parameters_file="$(arg physical_params)"
+    visual_parameters_file="$(arg visual_params)"
+    transmission_hw_interface="$(arg transmission_hw_interface)"
+    safety_limits="$(arg safety_limits)"
+    safety_pos_margin="$(arg safety_pos_margin)"
+    safety_k_position="$(arg safety_k_position)"/>
+  <joint name="world_joint" type="fixed">
+    <parent link="world"/>
+    <child link="base_link"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+
+  <!-- gripper, fingers closing along the tool0 y axis -->
+  <xacro:robotiq_2f_85 prefix="" parent="tool0">
+    <origin xyz="0 0 0" rpy="0 0 ${pi / 2}"/>
+  </xacro:robotiq_2f_85>
+
+  <!-- Grasp TCP between the finger pads, on the gripper's z axis. MoveIt plans the `manipulator` group to this frame. -->
+  <link name="grasp_link"/>
+  <joint name="grasp_joint" type="fixed">
+    <parent link="robotiq_arg2f_base_link"/>
+    <child link="grasp_link"/>
+    <origin xyz="0 0 0.13" rpy="0 0 0"/>
+  </joint>
+
+  <xacro:wrist_camera prefix="" parent="wrist_3_link">
+    <origin xyz="0 0.06 0.01" rpy="0 ${-pi / 2} ${pi / 2}"/>
+  </xacro:wrist_camera>
+
+  <!-- Grasp attachment. Friction alone does not hold objects reliably in Gazebo, so once the fingers are closed the
+       object is fixed to the wrist (the gripper base is merged into wrist_3_link when the URDF becomes SDF) at its
+       current relative pose. std_msgs/Empty on /ur5/grasp/attach and /ur5/grasp/detach, the state (std_msgs/String,
+       latched) on /ur5/grasp/state. -->
+  <gazebo>
+    <plugin name="grasp_attacher" filename="libur5_robotiq_grasp_attacher.so">
+      <parent_link>wrist_3_link</parent_link>
+      <child_model>$(arg grasp_object)</child_model>
+      <child_link>link</child_link>
+      <attach_topic>/ur5/grasp/attach</attach_topic>
+      <detach_topic>/ur5/grasp/detach</detach_topic>
+      <state_topic>/ur5/grasp/state</state_topic>
+    </plugin>
+  </gazebo>
+</robot>

@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<!-- AprilTag detection on the wrist camera: /tag_detections, TF wrist_camera_optical_frame -> tag_0 and the
+     annotated image on /tag_detections_image. -->
+<launch>
+  <arg name="camera" default="/ur5/wrist_camera" doc="Namespace of image_raw and camera_info"/>
+
+  <node name="apriltag" pkg="apriltag_ros" type="apriltag_ros_continuous_node" output="screen">
+    <!-- the simulated image has no distortion, so image_raw serves as the rectified image -->
+    <remap from="image_rect" to="$(arg camera)/image_raw"/>
+    <rosparam command="load" file="$(find ur5_robotiq_bringup)/config/apriltag_settings.yaml"/>
+    <rosparam command="load" file="$(find ur5_robotiq_bringup)/config/apriltag_tags.yaml"/>
+    <param name="publish_tag_detections_image" value="true"/>
+  </node>
+</launch>

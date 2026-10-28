@@ -1,20 +1,75 @@
 #!/usr/bin/env bash
-# Build (if needed), start the container, and drop into a shell.
-set -e
-cd "$(dirname "$0")"
+# Builds the image (if missing), starts the persistent development container and enters it.
+#
+#   ./docker/run.sh              interactive shell (at the workspace root)
+#   ./docker/run.sh <command...> runs the command in the container with the ROS environment loaded
+#   ./docker/run.sh --build      rebuilds the image
+#   ./docker/run.sh --stop       stops and removes the container
+#
+# GUI: the X11 socket is mounted; /dev/dri and the NVIDIA GPU (if any) are passed in.
+# The ROS master runs on port 11311 of the host network; set ROS_MASTER_URI to move it, e.g. when another ROS 1
+# setup on this machine already uses that port.
+set -euo pipefail
 
-# Let local containers talk to the host X server (Gazebo + RViz windows).
-xhost +local:root >/dev/null 2>&1 || \
-    echo "!! 'xhost' not found or X not running — GUI apps may fail to open."
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+WS_DIR="$(dirname "${SCRIPT_DIR}")"
+IMAGE="${UR5_IMAGE:-ur5_ros1:noetic}"
+CONTAINER="${UR5_CONTAINER:-ur5_ros1_dev}"
+USERNAME="$(id -un)"
+CT_WS="/home/${USERNAME}/robotic_arm"
 
-# Match the container user to your host UID/GID so mounted files stay yours.
-export USER_UID="$(id -u)"
-export USER_GID="$(id -g)"
+build_image() {
+  docker build \
+    --build-arg USERNAME="${USERNAME}" \
+    --build-arg USER_UID="$(id -u)" \
+    --build-arg USER_GID="$(id -g)" \
+    -t "${IMAGE}" "${SCRIPT_DIR}"
+}
 
-docker compose up -d --build
+case "${1:-}" in
+  --build) build_image; exit 0 ;;
+  --stop)  docker rm -f "${CONTAINER}" >/dev/null 2>&1 || true; exit 0 ;;
+esac
 
-echo
-echo "Container 'ur5_noetic' is running. Entering a shell..."
-echo "First time? Build the workspace with:  build_ws.sh"
-echo
-docker compose exec ur5 bash
+if [ -z "$(docker images -q "${IMAGE}")" ]; then
+  build_image
+fi
+
+if [ "$(docker inspect -f '{{.State.Running}}' "${CONTAINER}" 2>/dev/null || echo false)" != "true" ]; then
+  docker rm -f "${CONTAINER}" >/dev/null 2>&1 || true
+
+  # Allow local X clients (only containers on this machine)
+  if command -v xhost >/dev/null 2>&1 && [ -n "${DISPLAY:-}" ]; then
+    xhost +local: >/dev/null 2>&1 || true
+  fi
+
+  ARGS=(
+    --name "${CONTAINER}" -d --init
+    --network host --ipc host
+    -e DISPLAY="${DISPLAY:-:0}"
+    -e QT_X11_NO_MITSHM=1
+    -e UR5_WS="${CT_WS}"
+    -e ROS_MASTER_URI="${ROS_MASTER_URI:-http://localhost:11311}"
+    -v /tmp/.X11-unix:/tmp/.X11-unix:rw
+    -v "${WS_DIR}:${CT_WS}"
+    -w "${CT_WS}"
+  )
+  if [ -e /dev/dri ]; then
+    ARGS+=(--device /dev/dri)
+  fi
+  # NVIDIA: pass the GPU if nvidia-container-toolkit is installed (Gazebo rendering and cameras)
+  if command -v nvidia-smi >/dev/null 2>&1 && docker info --format '{{json .Runtimes}}' | grep -q nvidia; then
+    ARGS+=(--gpus all -e NVIDIA_DRIVER_CAPABILITIES=all -e NVIDIA_VISIBLE_DEVICES=all)
+  fi
+
+  docker run "${ARGS[@]}" "${IMAGE}" sleep infinity >/dev/null
+fi
+
+TTY=()
+[ -t 0 ] && [ -t 1 ] && TTY=(-it)
+
+if [ $# -eq 0 ]; then
+  docker exec "${TTY[@]}" "${CONTAINER}" bash
+else
+  docker exec "${TTY[@]}" "${CONTAINER}" bash -c "source /etc/profile.d/ros_env.sh; $*"
+fi

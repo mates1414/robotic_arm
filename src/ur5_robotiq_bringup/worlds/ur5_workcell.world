@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<!-- Work cell of the UR5 + Robotiq 2F-85: floor, light and the 5 cm AprilTag cube within reach of the arm. -->
+<sdf version="1.6">
+  <world name="ur5_workcell">
+    <physics name="1ms" type="ode">
+      <max_step_size>0.001</max_step_size>
+      <real_time_factor>1.0</real_time_factor>
+      <real_time_update_rate>1000</real_time_update_rate>
+    </physics>
+
+    <!-- initial view of the Gazebo GUI: from the front right, onto the arm and the cube -->
+    <gui fullscreen="0">
+      <camera name="user_camera">
+        <pose>1.4 -1.05 0.95 0 0.42 2.42</pose>
+      </camera>
+    </gui>
+
+    <include>
+      <uri>model://ground_plane</uri>
+    </include>
+    <include>
+      <uri>model://sun</uri>
+    </include>
+
+    <include>
+      <uri>model://apriltag_cube</uri>
+      <pose>0.5 0 0.025 0 0 0</pose>
+    </include>
+  </world>
+</sdf>

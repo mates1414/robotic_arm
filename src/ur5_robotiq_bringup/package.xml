@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>ur5_robotiq_bringup</name>
+  <version>0.1.0</version>
+  <description>Launch files, controllers, Gazebo world and AprilTag detection of the UR5 + Robotiq 2F-85 simulation.</description>
+  <maintainer email="mates21@ku.edu.tr">mates</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <exec_depend>apriltag_ros</exec_depend>
+  <exec_depend>controller_manager</exec_depend>
+  <exec_depend>effort_controllers</exec_depend>
+  <exec_depend>gazebo_ros</exec_depend>
+  <exec_depend>gripper_action_controller</exec_depend>
+  <exec_depend>joint_state_controller</exec_depend>
+  <exec_depend>joint_trajectory_controller</exec_depend>
+  <exec_depend>robot_state_publisher</exec_depend>
+  <exec_depend>rviz</exec_depend>
+  <exec_depend>ur5_robotiq_description</exec_depend>
+  <exec_depend>ur5_robotiq_moveit_config</exec_depend>
+  <exec_depend>ur_gazebo</exec_depend>
+  <exec_depend>xacro</exec_depend>
+
+  <export>
+    <!-- lets worlds include model://apriltag_cube -->
+    <gazebo_ros gazebo_model_path="${prefix}/models"/>
+  </export>
+</package>

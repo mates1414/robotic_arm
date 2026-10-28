@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>ur5_robotiq_manipulation</name>
+  <version>0.1.0</version>
+  <description>Manipulation nodes (MoveIt 1 moveit_commander, Python) for the UR5 + Robotiq 2F-85.</description>
+  <maintainer email="mates21@ku.edu.tr">mates</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>moveit_commander</exec_depend>
+  <exec_depend>rospy</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+  <exec_depend>tf2_ros</exec_depend>
+  <exec_depend>ur5_robotiq_moveit_config</exec_depend>
+</package>
